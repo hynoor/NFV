@@ -1,7 +1,10 @@
 import os
 import sys
+import re
+import time
 import logging
 
+from os.path import exists
 
 
 class MyLogger:
@@ -72,4 +75,34 @@ class MyLogger:
         self.__consolehandler__.setLevel(self.LOG_LEVELS[log_level])
 
 
+
+def convertsize(raw_size):
+    """ convert passed size with whatever units to byte unit
+    param raw_size  : passed raw size
+    return          : size in byte
+    """
+    rawsize = raw_size
+    sm = re.search('^(\d+)(b|B|k|K|m|M|g|G|t|T|p)?', str(rawsize))
+    if sm:
+        number = sm.group(1)
+        if sm.group(2):
+            unit = sm.group(2)
+            if unit.upper() == 'B':
+                return number
+            elif unit.upper() == 'K':
+                return int(number) * 1024
+            elif unit.upper() == 'M':
+                return int(number) * 1024 * 1024
+            elif unit.upper() == 'G':
+                return int(number) * 1024 * 1024 * 1024
+            elif unit.upper() == 'T':
+                return int(number) * 1024 * 1024 * 1024 * 1024
+            elif unit.upper() == 'P':
+                return int(number) * 1024 * 1024 * 1024 * 1024 * 1024
+            else:
+                sys.exit("Invalid unit: %s" % unit)
+        else:
+            return number 
+    else:
+        sys.exit("ERROR: Passed size is malformed!")
 

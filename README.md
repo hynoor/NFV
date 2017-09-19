@@ -1,14 +1,14 @@
 # NFV 
 ## (under developing)
-__A versatile tool of validating Network File System (NFS and CIFS) in many aspects__
-__NFV can be used as independ command-line tool and be imported and called in other application as well__
+_A versatile tool of validating Network File System (NFS and CIFS) in many aspects_
 
-### Develop Plan
-- __Byte range lock module (NT & Posix)__
+_NFV can be used as independ command-line tool and be imported and called in other application as well_
 
-- __ACL module (CIFS and NFSv4)__
+### phase 1 plan
+- _Byte range lock module (NT & Posix) (on-going)_
 
-- __ADS module (CIFS and NTFS only)__
+- _ACL module (CIFS and NFSv4)_
 
-- __ADS module (CIFS and NTFS only)__
+- _ADS module (CIFS and NTFS only)_
+
 

@@ -6,6 +6,7 @@ import fcntl
 import struct
 import errno
 import pdb
+import random
 
 if os.name == 'posix':
     import fcntl
@@ -22,6 +23,7 @@ class NfvLockManager:
     """ NfvLockManager Class
     Implements and offers locks related manipulations
     Each target file need its own NfvLockManager object respectively
+    Support manipulating both NFS and CIFS locks
     """
     if os.name == 'posix':
         # locking modes
@@ -70,7 +72,8 @@ class NfvLockManager:
         get all lock detail information maintained by current LockManager object
         :return  : a dict object containing all byte-range lock records
         """
-        return self._lockdb
+        # return a iterator object
+        return self._lockdb.keys()
 
 
     def lock(self, offset=None, length=None, 
@@ -86,6 +89,7 @@ class NfvLockManager:
         # parameters validation
         lockstart = offset
         locklen = length
+
         if offset is None and length is not None:
             lockstart, _ = next(self._locatenext)
         elif length is None and offset is not None:
@@ -98,21 +102,46 @@ class NfvLockManager:
         elif os.name == 'nt':
             self._nt_lock(lockstart, locklen, locking_mode, with_io)
 
+        # register to locking table
+        # plan to storage wrote checksum in 'value' field
+        self._lockdb[(lockstart, locklen)] = 1
 
     def unlock(self, offset=None, length=None):
         """ setlock
-        remove a byte-range lock on specific location 
+        remove a byte-range lock on specific or random location
+        if offset or length was not given, random unlock one
         :param offset      : the start offset of the lock to be created
         :param length      : the length of the lock to be created
         """
+        lockstart = offset
+        locklen = length
+        randlock = None
+
+        # if offset is not given, randomly select one from db to unlock
+        if offset is None and length is None:
+            if bool(self._lockdb):
+                randlock = random.choice(list(self._lockdb.keys()))
+                lockstart, locklen = randlock 
+            elif:
+                logger.info("locking table is empty")
+                return
+        elif offset not None and length not None:
+            if not self._lockdb[(offset, length)]:
+                raise ValueError("ERR: Given lock was not found")
         
-        self.lock(offset=offset, length=length)
-        pass
+        if os.name == 'posix' and self._lockdb[(lockstart, locklen)]:    
+            self._posix_lock(lockstart, locklen, 'unlock', with_io)
+        elif os.name == 'nt' and self._lockdb[(lockstart, locklen)]:    
+            self._nt_lock(lockstart, locklen, 'unlock', with_io)
+        
+        # udpate lock table
+        del self._lockdb[(lockstart, locklen)] 
 
 
     def multi_lock(self, start=0, end=0, length=0, mode='exclusive'):
         """ strategically created multiple target locks 
         """
+        # to be implemented
         pass
 
 
@@ -156,8 +185,6 @@ class NfvLockManager:
         except IOError as e:
             raise IOError(e)
         
-        # register the lock
-        self._lockdb[(fh, lockmode, lockdata)] = 1
 
 
     def _nt_lock(self):

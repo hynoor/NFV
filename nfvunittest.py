@@ -17,4 +17,4 @@ if __name__ == "__main__":
     testfilepath = 'testshare/testfile.txt'
     filemanager = NfvLockManager(testfilepath, 'shared')
     filemanager.lock()
-    print(filemanager.getlock())
+    logger.debug(filemanager.get_lock())

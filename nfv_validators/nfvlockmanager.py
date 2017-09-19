@@ -59,20 +59,18 @@ class NfvLockManager:
             raise ValueError("Size of given file: %s is 0, \
                 unable create lock on empty file!" % file_path)
 
-        self._file = file_path
-        self._filehandle = None
+        self._file = file_path 
         self._lockmode = locking_mode
         self._filehandle = open(file_path, self.LOCK_MODES[self._lockmode][0])
-        self._lockedregions = dict() # traking real-time lock info
-        self._locatenext = self._locatelock()
+        self._locatenext = self._locate_lock()
 
 
-    def getlock(self):
-        """ getlock
+    def get_lock(self):
+        """ get_lock
         get all lock detail information maintained by current LockManager object
         :return  : a dict object containing all byte-range lock records
         """
-        return self._lockedregions
+        return self._lockdb
 
 
     def lock(self, offset=None, length=None, 
@@ -96,9 +94,9 @@ class NfvLockManager:
             lockstart, locklen = next(self._locatenext)
 
         if os.name == 'posix':
-            self._posixlock(lockstart, locklen, locking_mode, with_io)
+            self._posix_lock(lockstart, locklen, locking_mode, with_io)
         elif os.name == 'nt':
-            self._ntlock(lockstart, locklen, locking_mode, with_io)
+            self._nt_lock(lockstart, locklen, locking_mode, with_io)
 
 
     def unlock(self, offset=None, length=None):
@@ -107,19 +105,20 @@ class NfvLockManager:
         :param offset      : the start offset of the lock to be created
         :param length      : the length of the lock to be created
         """
-
+        
+        self.lock(offset=offset, length=length)
         pass
 
 
-    def multilock(self, start=0, end=0, length=0, mode='exclusive'):
+    def multi_lock(self, start=0, end=0, length=0, mode='exclusive'):
         """ strategically created multiple target locks 
         """
         pass
 
 
-    def _posixlock(self, offset=0, length=1, 
+    def _posix_lock(self, offset=0, length=1, 
             locking_mode='shared',  with_io=None):
-        """ posixlock
+        """ posix_lock
         Create a posix byte-range lock
         """
         fh = self._filehandle
@@ -158,17 +157,30 @@ class NfvLockManager:
             raise IOError(e)
         
         # register the lock
-        self._lockedregions[(fh, self.LOCK_MODES[lockmode][2], lockdata)] = 1
+        self._lockdb[(fh, lockmode, lockdata)] = 1
 
 
-    def _ntlock(self):
+    def _nt_lock(self):
         """ manipulate NT byte-range lock
         """
         # to be implemented
         pass
 
 
-    def _locatelock(self, start=0, lock_length=1, step=1, stop=0):
+    def upgrade_nfs4_lock(self):
+        """ update grade NFSv4 locks
+        """
+        # to be implemented
+        pass
+
+    def downgrade_nfv4_lock(self):
+        """ update grade NFSv4 locks
+        """
+        # to be implemented
+        pass
+
+
+    def _locate_lock(self, start=0, lock_length=1, step=1, stop=0):
         """ yield specific location the locks to be created on 
         :param start       : the start offset to lock
         :param lock_length : length of each byte-range

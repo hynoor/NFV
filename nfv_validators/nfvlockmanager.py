@@ -4,12 +4,14 @@ import os
 import sys
 import errno
 
-from os.path import isfile, exists
+from os.path import isfile, exists, getsize
+#from NFV.nfv_utils.utils import MyLogger
+
 
 class NfvLockManager:
     """ NfvLockManager Class
     Implements and offers locks related manipulations
-    Each target file need its own NfsLockManager object respectively
+    Each target file need its own NfvLockManager object respectively
     """
 
     if os.name == 'posix':
@@ -34,7 +36,6 @@ class NfvLockManager:
             'SHARED          ' : ('r+b', msvcrt.LK_NBRLCK),
             'UNLOCK'           : ('r+b', msvcrt.LKUNLCK),
         }
-    
     }
     else:
         sys.exit('Unsupported Platform! Only accepts NT and POSIX system.')
@@ -54,28 +55,31 @@ class NfvLockManager:
         self._file = file_path
         self._filehandle = None
         self._filehandle = open(file_path, LOCK_MODE['EXCLUSIVE'])
-        self._lockedregions = dict()
+        self._lockedregions = dict() # traking real-time lock info
 
 
     def getlock(self):
-        pass
+        """ getlock
+        get all lock detail information maintained by current LockManager object
+        :return  : a dict object containing all byte-range lock records
+        """
+
+        return self._lockedregions
 
 
-    def lock(self, file_handle=None, offset=None, length=None):
+    def lock(self, offset=None, length=None):
         """ setlock
         ceate a byte-range lock on specific location 
-        :param file_handle : file hanle of target file where locks to be creatd  
         :param offset      : the start offset of the lock to be created
         :param length      : the length of the lock to be created
         :return            : a tuple which stores the lock's attributes (file_hanlde, offset, length)
         """
-        pass
+        # parameters validation
 
 
-    def unlock(self, file_handle=None, offset=None, length=None):
+    def unlock(self, offset=None, length=None):
         """ setlock
         remove a byte-range lock on specific location 
-        :param file_handle : file hanle of target file where locks to be creatd  
         :param offset      : the start offset of the lock to be created
         :param length      : the length of the lock to be created
         """
@@ -83,17 +87,17 @@ class NfvLockManager:
         pass
 
 
-    def multilock(self, file_handle=None, start=0, end=0, length=0, mode='EXCLUSIVE'):
+    def multilock(self, start=0, end=0, length=0, mode='EXCLUSIVE'):
         """ strategically created multiple target locks 
         """
         pass
 
 
-    def _posixlock(self, file_handle=None, mode='EXCLUSIVE', offset=0, length=0, with_io=None):
+    def _posixlock(self, mode='EXCLUSIVE', offset=0, length=0, with_io=None):
         """ posixlock
         Create a posix byte-range lock
         """
-        fh = file_handle
+        fh = self._filehandle
         lockmode = mode.lower()
         withio = with_io
 
@@ -133,6 +137,42 @@ class NfvLockManager:
 
     def _ntlock(self):
         pass
+
+
+    def _get_byte_range(start=0, lock_length=1, step=1, stop=0):
+        """ yield specific location the locks to be created on 
+        :param start             : the start offset to lock
+        :param lock_length : length of each byte-range
+        :param step              : interval of each byte-range
+        :param stop              : the stop offset to lock
+        :return                  : (offset, length)
+        """
+        if file_size == None:    
+            raise ValueError("parameter file_size is mandatory!")
+
+        filesize = getsize(self._file)
+        start = int(start)
+        stop = int(stop)
+        length = int(lock_length)
+        interval = int(step_interval)
+
+        if interval + start > filesize:
+            interval = filesize - start
+
+        if length > (filesize - start) or length == 0:
+            length = filesize - start 
+            stop = filesize
+
+        if stop <= filesize and stop > 0:
+            filesize = stop
+
+        numiterate = int((filesize-start)/(interval+length))
+
+        #if interval != 0:
+        for o in xrange(0,(numiterate+1)):
+            activeoffset = start + o * (length+interval)
+            if length + activeoffset <= filesize:
+                yield (activeoffset, length)
 
 
 

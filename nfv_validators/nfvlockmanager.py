@@ -25,9 +25,12 @@ class NfvLockManager:
     Each target file need its own NfvLockManager object respectively
     Support manipulating both NFS and CIFS locks
     """
+    # put lock modes into slot to save memory
+    __slots__ = ('__LOCK_MODES')
+
     if os.name == 'posix':
         # locking modes
-        LOCK_MODES = {
+        __LOCK_MODES = {
             'exclusive'        : ('r+b', fcntl.F_WRLCK, fcntl.F_SETLK),
             'exclusive_io'     : ('r+b', fcntl.F_WRLCK, fcntl.F_SETLK),
             'exclusive_blk'    : ('r+b', fcntl.F_WRLCK, fcntl.F_SETLKW),
@@ -36,7 +39,7 @@ class NfvLockManager:
             'unlock'           : ('r+b', fcntl.F_UNLCK, fcntl.F_SETLK),
         }
     elif os.name == 'nt':
-        LOCK_MODES = {
+        __LOCK_MODES = {
             'exclusive'        : ('r+b', msvcrt.LK_NBLCK),
             'exclusive_io'     : ('r+b', msvcrt.LK_NBLCK),
             'exclusive_blk'    : ('r+b', msvcrt.LK_LOCK),
@@ -55,7 +58,7 @@ class NfvLockManager:
 
         if not isfile(file_path):
             raise ValueError("Given file: %s doesn't exist" % file_path)
-        if locking_mode not in self.LOCK_MODES.keys():
+        if locking_mode not in self.__LOCK_MODES.keys():
             raise ValueError("Given locking_mode: %s is invalid$" % locking_mode)
         if getsize(file_path) == 0:
             raise ValueError("Size of given file: %s is 0, \
@@ -63,7 +66,7 @@ class NfvLockManager:
 
         self._file = file_path 
         self._lockmode = locking_mode
-        self._filehandle = open(file_path, self.LOCK_MODES[self._lockmode][0])
+        self._filehandle = open(file_path, self.__LOCK_MODES[self._lockmode][0])
         self._locatenext = self._locate_lock()
 
 
@@ -154,7 +157,7 @@ class NfvLockManager:
         lockmode = locking_mode.lower()
         withio = with_io
         pdb.set_trace()
-        lockdata = struct.pack('hhllhh', self.LOCK_MODES[lockmode][1], 
+        lockdata = struct.pack('hhllhh', self.__LOCK_MODES[lockmode][1], 
             0, offset, length, 0, 0)
 
         try:
@@ -163,7 +166,7 @@ class NfvLockManager:
         
             if withio:
                 if lockmode == 'exclusive_io' or lockmode == 'exclusive_blk_io':
-                    rv = fcntl.fcntl(fh, self.LOCK_MODES[lockmode][2], lockdata)
+                    rv = fcntl.fcntl(fh, self.__LOCK_MODES[lockmode][2], lockdata)
                     fh.seek(offset)
                     # truncate extra content which exceeds end offest
                     fh.write(withio[:length])
@@ -178,9 +181,9 @@ class NfvLockManager:
                     if readdata != withio:
                         sys.exit("ERROR: data verification failed. expect: %s | actual: %s" 
                                 % (withio, readdata))
-                    rv = fcntl.fcntl(fh, self.LOCK_MODES[lockmode][2], lockdata)
+                    rv = fcntl.fcntl(fh, self.__LOCK_MODES[lockmode][2], lockdata)
             else:
-                rv = fcntl.fcntl(fh, self.LOCK_MODES[lockmode][2], lockdata)
+                rv = fcntl.fcntl(fh, self.__LOCK_MODES[lockmode][2], lockdata)
 
         except IOError as e:
             raise IOError(e)

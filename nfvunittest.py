@@ -13,9 +13,7 @@ if __name__ == "__main__":
     logger = mylogger.get_logger()
     logger.info("I am first log")
 
-    size = '30G'
-    logger.info("converted %s to %d" % (size, convertsize(size)))
-    testfilepath = '/mnt/brandnew/nfv/testfile.txt'
+    testfilepath = 'Z:\\nfv\\testfile.txt'
     filemanager = NfvLockManager(testfilepath, 'shared')
     filemanager.lock(offset=0, length=10, locking_mode='exclusive')
     filemanager.lock(offset=5, length=15, locking_mode='exclusive')

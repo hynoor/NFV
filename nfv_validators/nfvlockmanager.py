@@ -2,7 +2,6 @@
 """
 import os
 import sys
-import fcntl
 import struct
 import errno
 import pdb
@@ -45,7 +44,7 @@ class NfvLockManager:
             'exclusive_blk'    : ('r+b', msvcrt.LK_LOCK),
             'exclusive_blk_io' : ('r+b', msvcrt.LK_LOCK),
             'shared'           : ('r+b', msvcrt.LK_NBRLCK),
-            'unlock'           : ('r+b', msvcrt.LKUNLCK),
+            'unlock'           : ('r+b', msvcrt.LK_UNLCK),
         }
     else:
         sys.exit('Unsupported Platform! Only accepts NT and POSIX system.')
@@ -204,11 +203,36 @@ class NfvLockManager:
             raise IOError(e)
 
 
-    def _nt_lock(self):
+    def _nt_lock(self, offset=0, length=1, locking_mode='shared',  with_io=None):
         """ manipulate NT byte-range lock
         """
-        # to be implemented
-        pass
+        fh = self._filehandle
+        lockmode = locking_mode.lower()
+        withio = with_io
+        try:
+            print('Set %s lock on range[%d - %d] of file: %s ' 
+                     % (lockmode, offset, offset + length -1, fh.name))
+            if withio: 
+                if lockmode == 'exclusive_io' or lockmode == 'exclusive_blk_io':
+                    fh.seek(offset)
+                    msvcrt.locking(fh.fileno(), LOCK_MODES[lock_mode][1], length)
+                    # need to truncate extra content which exceeds end offset
+                    fh.write(withio[:length])
+                elif lockmode == 'shared' or lockmode == 'unlock':
+                    fh.seek(offset)
+                    readdata = fh.read(length) 
+                    if readdata != withio[:length]:
+                        sys.exit("Data verification failed. expect: %s | actual: %s" % (withio, readdata))
+                    fh.seek(offset)
+                    msvcrt.locking(fh.fileno(), self._LOCK_MODES[lockmode][1], length)
+            else:
+                fh.seek(offset)  # this will change the position to offset
+                msvcrt.locking(fh.fileno(), self._LOCK_MODES[lockmode][1], length)
+
+        except IOError as e:
+            raise IOError(e) 
+
+        return True
 
 
     def _locator(self, start=0, lock_length=1, step=1, stop=0):

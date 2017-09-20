@@ -72,7 +72,7 @@ class NfvLockManager:
     def get_lock(self):
         """ get_lock
         get all lock detail information maintained by current LockManager object
-        :return  : a dict object containing all byte-range lock records
+        :return  : a generator yield each existing lock 
         """
         # return a iterator object
         return self._lockdb.keys()
@@ -91,7 +91,8 @@ class NfvLockManager:
         # parameters validation
         lockstart = int(convertsize(offset))
         locklen = int(convertsize(length))
-
+        # if offset or/and length was not given, 
+        # which value will be auto genrated
         if offset is None and length is not None:
             lockstart, _ = next(self._locatenext)
         elif length is None and offset is not None:
@@ -143,15 +144,14 @@ class NfvLockManager:
         del self._lockdb[(lockstart, locklen)] 
 
 
-    def m_lock(self, start=0, step=1, stop=0, length=1, locking_mode='exclusive', with_io=None):
-        """ strategically created multiple target locks 
+    def multi_lock(self, start=0, step=1, stop=0, length=1, locking_mode='exclusive', with_io=None):
+        """ strategically created multiple target locks at a time
         :param start        : the start offset of first lock to be set
         :param length       : the length of each lock to be created 
         :param step         : the interval of each adjacent locks
         :param end          : the start offset of last lock should not exceeded
         :param locking_mode : the locking mode to be used
         """
-        # to be implemented
         lockstart = convertsize(start)
         locklen = convertsize(length)
         lockstop = convertsize(stop)
@@ -236,7 +236,7 @@ class NfvLockManager:
 
 
     def _locator(self, start=0, lock_length=1, step=1, stop=0):
-        """ yield specific location the locks to be created on 
+        """ yield specific location a time the lock to be created on 
         :param start       : the start offset to lock
         :param lock_length : length of each byte-range
         :param step        : interval of each byte-range
@@ -262,10 +262,25 @@ class NfvLockManager:
         numiterate = int((filesize-start)/(interval+length))
 
         #if interval != 0:
-        for o in range(0,(numiterate+1)):
+        for o in range(0, (numiterate+1)):
             activeoffset = start + o * (length+interval)
             if length + activeoffset <= filesize:
                 yield (activeoffset, length)
+
+
+    def wipe($self, data_check=None):
+        """ unlock all existing lock and close file handle
+        """
+        # release all locks
+        for lock in $self._lockdb.keys():
+            self.unlock(offset=lock[0], length=lock[1], with_io=data_check)
+            del $self._lockdb[lock]
+
+        # close file handle  
+        $self._filehandle.close()
+
+
+
 
 
 

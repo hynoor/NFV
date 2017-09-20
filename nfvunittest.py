@@ -1,4 +1,6 @@
 import logging
+import pdb
+import time
 
 # internal modules
 from nfv_utils.utils import MyLogger, convertsize
@@ -7,14 +9,19 @@ from nfv_validators.nfvlockmanager import NfvLockManager
 
 if __name__ == "__main__":
 
-    mylogger = MyLogger( logger_name = 'ut1', log_level = 'INFO', record_path ='log/ut1')
+    mylogger = MyLogger( logger_name = 'ut1', log_level = 'INFO')
     logger = mylogger.get_logger()
     logger.info("I am first log")
 
     size = '30G'
-    print("converted %s to %d" % (size, convertsize(size)))
-
-    testfilepath = 'testshare/testfile.txt'
+    logger.info("converted %s to %d" % (size, convertsize(size)))
+    testfilepath = '/mnt/brandnew/nfv/testfile.txt'
     filemanager = NfvLockManager(testfilepath, 'shared')
-    filemanager.lock()
-    logger.debug(filemanager.get_lock())
+    filemanager.lock(offset=0, length=10, locking_mode='exclusive')
+    filemanager.lock(offset=5, length=15, locking_mode='exclusive')
+    filemanager.unlock()
+    filemanager.unlock()
+    for l in filemanager.get_lock():
+        logger.info(l)
+
+    time.sleep(1000)

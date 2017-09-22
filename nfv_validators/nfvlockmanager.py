@@ -2,6 +2,7 @@
 :class NfvLockManager : manage file locks
 :class NfvLock        : file lock
 """
+# standard modules
 import os
 import sys
 import struct
@@ -10,12 +11,14 @@ import pdb
 import random
 import collections
 
+# lock modules
 if os.name == 'posix':
     import fcntl
     import struct
 elif os.name == 'nt':
     import msvcrt
 
+# NFV modules
 from os.path import isfile, exists, getsize
 from nfv_utils.utils import convert_size
 
@@ -37,7 +40,6 @@ class NfvLockManager:
         self._fh = None
         self._repository = set(locks)
         self._isattached = False
-        #self._lockdb = collections.defaultdict(lambda : None)
 
         if file_path:
             self._fp = file_path
@@ -50,33 +52,45 @@ class NfvLockManager:
         it only add existing lock rather than creating new lock
         if manager object is attached a specific, the added lock
         will be attached automatically
+        :param lock : lock object to be added to be managed
         """
-        if lock is NfvLock:
-            self._repository.add(lock)
+        if lock is not NfvLock:
+            raise ValueError("Given lock is not NfvLock type object!")
+        elif lock.isattached:
+            raise ValueError("Given lock is attached, unable be added into NfvLockManager object ")
         else: 
-            raise ValueError("Given lock is not NfvLock object!")
+            self._repository.add(lock)
 
         if self._isattached:
             lock.attach(self._fh)
 
-    def reomve_lock(self, lock=None):
-        """ add_lock
-        remove a nfv lock object to nfv manager
+
+    def remove_lock(self, lock=None):
+        """ remove_lock
+        remove a NfvLock object from NfvLockManager repository
         it only reomve lock from manager rather than deleting the lock object
         """
-        if lock is NfvLock:
+        if lock is NfvLock and lock in self._repository:
+            if lock.islocked:
+                lock.off() # switch off
+            elif lock.isattached():
+                lock.detach() # detatch
             self._repository.remove(lock)
         else:
-            raise ValueError("Given lock is not NfvLock object")
+            raise ValueError("Given NfvLock object is invalid!")
+
 
     def attach(self, file_path=None):
         """ attach
         Attach lock objects to a specific file
         :param  : path of target file to be attached
         """
+        if self._isattached:
+            raise Exception("Current NfvLogManager object already being attached")
+
         if file_path is not None:
-            self._fp = file_path
             self._fh = open(file_path)
+            self._fp = file_path
 
         for lock in list(self._repository):
             lock.attach(self._fh)
@@ -87,6 +101,7 @@ class NfvLockManager:
     def detach(self):
         """ detach
         detach this lock manager from a specific file
+        it's containing NfvLock object will be detached automatically
         """
         if not self._isattached:
             pass
@@ -95,61 +110,60 @@ class NfvLockManager:
             for lock in list(self._repository):
                 lock.detach()
 
-    def __iter__(self):
-        """ iterator implementation
+    
+    def produce_lock(self, length=1, mode='exclusive', data=None):
+        """ sequencially create a NfvLock object at a time, 
+            try best to produce maximu number of locks, 
+            which attach status will be sync-ed up with NfvLockManager status
+        :param start        : the start offset of first lock to be set
+        :param length       : the length of each lock to be created 
+        :param step         : the interval of each adjacent locks
+        :param end          : the start offset of last lock should not exceeded
+        :param locking_mode : the locking mode to be used
+        :yield              : yield a lock object
         """
-        for lock in self._repository:
-            yield lock
-        
+        lockstep = 1        
+        filesize = 0
 
-    def produce_lock(self, start=0, step=1, length=1, \
-            stop=0, mode='exclusive', data=None):
-        """ strategically created multiple target locks at a time
+        if self._fp:
+            filesize = getsize(self._fp)
+        else:
+            raise Exception("It requires attached a file before producin any lock!")
+
+        if os.name == 'nt':
+            # nt lock will not merge the ajacent locks
+            lockstep = 0
+
+        locklocator = locator(file_size=filesize, start=0, lock_length=1, step=lockstep, stop=0)
+        
+        for loc in locklocator:
+            lock = NfvLock(loc[0], lock[1], mode, data)
+            if self._isattached:
+                lock.attch(self._fh)
+            yield lock 
+
+
+    def deploy_lock(self, start=0, step=1, length=1, \
+            stop=1, mode='exclusive', data=None):
+        """ strategically created multiple target locks, 
+            which will attach status will sync up with NfvLockManager's attach status
         :param start        : the start offset of first lock to be set
         :param length       : the length of each lock to be created 
         :param step         : the interval of each adjacent locks
         :param end          : the start offset of last lock should not exceeded
         :param locking_mode : the locking mode to be used
         """
-        filesize = getsize(self._fp)
+        if self._fp:
+            filesize = getsize(self._fp)
+        else:
+            raise Exception("It requires attached a file before producin any lock!")
+
         lockstart = convert_size(start)
         locklen = convert_size(length)
         lockstop = convert_size(stop)
         lockstep = convert_size(step)
         lockmode = mode
         
-        def locator(file_size=0, start=0, lock_length=1, step=1, stop=0):
-            """ yield specific location a time the lock to be created on 
-            :param start       : the start offset to lock
-            :param lock_length : length of each byte-range
-            :param step        : interval of each byte-range
-            :param stop        : the stop offset to lock
-            :yield             : (offset, length)
-            """
-            filesize = file_size
-            start = int(start)
-            stop = int(stop)
-            length = int(lock_length)
-            interval = int(step)
-
-            if interval + start > filesize:
-                interval = filesize - start
-
-            if length > (filesize - start) or length == 0:
-                length = filesize - start 
-                stop = filesize
-
-            if stop <= filesize and stop > 0:
-                filesize = stop
-
-            numiterate = int((filesize-start)/(interval+length))
-
-            #if interval != 0:
-            for o in range(0, (numiterate+1)):
-                activeoffset = start + o * (length+interval)
-                if length + activeoffset <= filesize:
-                    yield (activeoffset, length)
-     
         locklocator = locator(file_size=filesize, start=lockstart, \
                 lock_length=locklen, step=lockstep, stop=lockstop)
 
@@ -158,6 +172,39 @@ class NfvLockManager:
             self._repository.add(lock)
 
         self.attach()
+
+
+    @staticmethod 
+    def locator(file_size=0, start=0, lock_length=1, step=1, stop=0):
+        """ yield specific location a time the lock to be created on 
+        :param start       : the start offset to lock
+        :param lock_length : length of each byte-range
+        :param step        : interval of each byte-range
+        :param stop        : the stop offset to lock
+        :yield             : yield a tuple comprised of (offset, length)
+        """
+        filesize = file_size
+        start = int(start)
+        stop = int(stop)
+        length = int(lock_length)
+        interval = int(step)
+
+        if interval + start > filesize:
+            interval = filesize - start
+
+        if length > (filesize - start) or length == 0:
+            length = filesize - start 
+            stop = filesize
+
+        if stop <= filesize and stop > 0:
+            filesize = stop
+
+        numiterate = int((filesize-start)/(interval+length))
+
+        for o in range(0, (numiterate+1)):
+            activeoffset = start + o * (length+interval)
+            if length + activeoffset <= filesize:
+                yield (activeoffset, length)
 
 
     def wipe_lock(self):
@@ -172,6 +219,14 @@ class NfvLockManager:
             del lock
 
         self._repository.clear()
+
+
+    def __iter__(self):
+        """ iterator implementation
+        """
+        for lock in self._repository:
+            yield lock
+
 
 
 class NfvLock:
@@ -215,8 +270,13 @@ class NfvLock:
     else:
         sys.exit('Unsupported Platform! Only accepts NT and POSIX system.')
 
-    def __init__(self, file_path=None, offset=0, length=1, mode='shared', data=None):
+
+    def __init__(self, offset=0, length=1, mode='shared', data=None):
         """ constructor function
+        :param offset : start offset of the lock 
+        :param length : length of the lock 
+        :param mode   : locking mode of the lock to be applied
+        :param data   : the data used to write on the lock region, for data check
         """
         if mode not in self._LOCK_MODES.keys() or mode == 'unlock':
             raise ValueError("Given lock mode is invalid!")
@@ -247,42 +307,54 @@ class NfvLock:
             'id'          : self._id,
         }
 
-        if file_path:
-            self._filepath = file_path 
-            self._filehanle = open(file_path)
-
 
     def attach(self, file_handle):
         """ attach
-        attach lock object to specific file
+        attach lock object to specific filehandle
+        :param file_handle : file hanle to be atteched
         """
+        if self._isattached:
+            raise Exception("Current lock already attach, need to detach first")
+
         self._filehandle = file_handle
         self._filepath = file_handle.name
         self._isattached = True
 
 
     def detach(self):
-        """ attach
-        detach lock from file
+        """ detach
+        detach lock from file handle
         """
         if not self._islocked:
             self._filepath = None
             self._filehandle = None
             self._isattached = False
         else:
-            raise Exception("Lock is turned on, can't be detached")
+            raise Exception("Lock is on, can't be detached")
 
 
     def is_attached(self):
        """ is_attached
        return if current lock being attached to a file
+       :return : attaching state of the lock
        """
        return self._isattached
+
+
+    def is_locked(self):
+       """ is_locked
+       return if current lock's state (on/off)
+       :return : locking state of the lock
+       """
+       return self._islocked
 
 
     def get_property(self, name=None):
         """ get_property
         get the value of given property
+        :param name : name of property to be got
+        :return     : value of given parameter name, 
+                      if param name was not given, return all properies
         """
         if name is None:
             return self._property
@@ -293,11 +365,14 @@ class NfvLock:
 
 
     def on(self):
-        """ turn on the lock
+        """ switch on the lock
         """
-        if not self.is_attached():
+        if not self.isattached:
             raise Exception("lock hasn't attached to any file")
 
+        if self.islocked:
+            raise Exception("Current lock has already switched on")
+        
         if os.name == 'posix':
             self._posix_lock()
         elif os.name == 'nt':
@@ -307,7 +382,7 @@ class NfvLock:
 
 
     def off(self):
-        """ turn off the lock (unlock)
+        """ switch off the lock (unlock)
         """
         if not self.is_attached():
             raise Exception("lock hasn't attached to any file")
@@ -331,7 +406,9 @@ class NfvLock:
 
 
     def _nt_lock(self, lock_mode='shared'):
-        """ manipulate NT byte-range lock
+        """ _nt_lock
+        manipulate NT byte-range lock
+        :param lock_mode : the locking mode to be applied  
         """
         fh = self._filehandle
         mode = lock_mode
@@ -365,6 +442,7 @@ class NfvLock:
     def _posix_lock(self, lock_mode):
         """ posix_lock
         Create a posix byte-range lock
+        :param lock_mode : the locking mode to be applied  
         """
         fh = self._filehandle
         mode = lock_mode 
@@ -392,3 +470,5 @@ class NfvLock:
                 rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
         except Exception as e:
             raise Exception(e)
+
+

@@ -18,12 +18,11 @@ def multi_produce():
 
     logger.info("Create Locks")
     lockmanager.attach(testfilepath)
-    lockmanager.produce_lock(start=0, length=10, stop=50, step=10, mode='exclusive')
+    producer = lockmanager.produce_lock()
     
     logger.info("Attach lock manager to a file")
-
     logger.info("Turn on all locks")
-    for lock in lockmanager:
+    for lock in producer:
         lock.on()
         logger.info("lock %s was turned on" % lock.get_property('id'))
 

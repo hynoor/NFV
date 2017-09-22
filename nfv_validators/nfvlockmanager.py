@@ -124,6 +124,7 @@ class NfvLockManager:
         """
         lockstep = 1        
         filesize = 0
+        lock = None
 
         if self._fp:
             filesize = getsize(self._fp)
@@ -134,12 +135,12 @@ class NfvLockManager:
             # nt lock will not merge the ajacent locks
             lockstep = 0
 
-        locklocator = locator(file_size=filesize, start=0, lock_length=1, step=lockstep, stop=0)
-        
+        locklocator = self.locator(file_size=filesize, start=0, lock_length=1, step=lockstep, stop=0)
         for loc in locklocator:
-            lock = NfvLock(loc[0], lock[1], mode, data)
+            lock = NfvLock(loc[0], loc[1], mode, data)
             if self._isattached:
-                lock.attch(self._fh)
+                lock.attach(self._fh)
+            self._repository.add(lock)
             yield lock 
 
 
@@ -174,8 +175,7 @@ class NfvLockManager:
         self.attach()
 
 
-    @staticmethod 
-    def locator(file_size=0, start=0, lock_length=1, step=1, stop=0):
+    def locator(self, file_size=0, start=0, lock_length=1, step=1, stop=0):
         """ yield specific location a time the lock to be created on 
         :param start       : the start offset to lock
         :param lock_length : length of each byte-range
@@ -290,7 +290,7 @@ class NfvLock:
         self._data = data
         self._islocked = False
         self._isattached = False
-        self._id = self._startoffset + self._stopoffset
+        self._id = self._startoffset
 
         if data:
             self._data = data[:length]
@@ -367,10 +367,10 @@ class NfvLock:
     def on(self):
         """ switch on the lock
         """
-        if not self.isattached:
+        if not self._isattached:
             raise Exception("lock hasn't attached to any file")
 
-        if self.islocked:
+        if self._islocked:
             raise Exception("Current lock has already switched on")
         
         if os.name == 'posix':

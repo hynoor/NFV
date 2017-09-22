@@ -3,9 +3,10 @@ import sys
 import re
 import time
 import logging
+import hashlib
+import pdb
 
 from os.path import exists
-
 
 class MyLogger:
     """ MyLogger Class
@@ -76,7 +77,7 @@ class MyLogger:
 
 
 
-def convertsize(raw_size):
+def convert_size(raw_size):
     """ convert passed size with whatever units to byte unit
     param raw_size  : passed raw size
     return          : size in byte
@@ -102,7 +103,24 @@ def convertsize(raw_size):
             else:
                 sys.exit("Invalid unit: %s" % unit)
         else:
-            return number 
+            return int(number )
     else:
         sys.exit("ERROR: Passed size is malformed!")
 
+
+def encipher_string(string=None, store=None):
+    """ encode the given string to a checksum code, then put it in to store db
+    :encipher : target string to be enciphered
+    :return   : checksum of given string
+    """
+    if string is None:
+        raise  ValueError("Parameter string is required")
+    # using 'sha' result as unique db key to reduce the hosts' memory consumption
+    hashmd5 = hashlib.md5()
+    stringcks = hashmd5.update(string.encode('utf8'))
+    # Start over if the string is already in the Database
+    if store:
+        store[stringcks] = True
+    else:
+        return stringcks
+ 

@@ -1,4 +1,6 @@
-""" This module implements all locking manipulations for both NFS locks and CIFS locks
+""" This module implements 2 primary class to manipulating file locks
+:class NfvLockManager : manage file locks
+:class NfvLock        : file lock
 """
 import os
 import sys
@@ -15,18 +17,182 @@ elif os.name == 'nt':
     import msvcrt
 
 from os.path import isfile, exists, getsize
-from nfv_utils.utils import MyLogger, convertsize
+from nfv_utils.utils import convert_size
 
 
 
 class NfvLockManager:
     """ NfvLockManager Class
-    Implements and offers locks related manipulations
-    Each target file need its own NfvLockManager object respectively
+    Manages all lock objects it contains, do not support duplication locks
     Support manipulating both NFS and CIFS locks
     """
-    # put lock modes into slot to save memory
-    #__slots__ = '_LOCK_MODES'
+
+
+    def __init__(self, file_path=None, locks=[]):
+        """ init
+        initialize the class's property
+        :param  locks  : a list stores all locks managed
+        """
+        self._fp = None
+        self._fh = None
+        self._repository = set(locks)
+        self._isattached = False
+        #self._lockdb = collections.defaultdict(lambda : None)
+
+        if file_path:
+            self._fp = file_path
+            self._fh = open(self._fp, 'r+b') 
+
+
+    def add_lock(self, lock=None):
+        """ add_lock
+        add a nfv lock object to nfv manager
+        it only add existing lock rather than creating new lock
+        if manager object is attached a specific, the added lock
+        will be attached automatically
+        """
+        if lock is NfvLock:
+            self._repository.add(lock)
+        else: 
+            raise ValueError("Given lock is not NfvLock object!")
+
+        if self._isattached:
+            lock.attach(self._fh)
+
+    def reomve_lock(self, lock=None):
+        """ add_lock
+        remove a nfv lock object to nfv manager
+        it only reomve lock from manager rather than deleting the lock object
+        """
+        if lock is NfvLock:
+            self._repository.remove(lock)
+        else:
+            raise ValueError("Given lock is not NfvLock object")
+
+    def attach(self, file_path=None):
+        """ attach
+        Attach lock objects to a specific file
+        :param  : path of target file to be attached
+        """
+        if file_path is not None:
+            self._fp = file_path
+            self._fh = open(file_path)
+
+        for lock in list(self._repository):
+            lock.attach(self._fh)
+
+        self._isattached = True
+        
+
+    def detach(self):
+        """ detach
+        detach this lock manager from a specific file
+        """
+        if not self._isattached:
+            pass
+        else:
+            self._fp = None
+            for lock in list(self._repository):
+                lock.detach()
+
+    def __iter__(self):
+        """ iterator implementation
+        """
+        for lock in self._repository:
+            yield lock
+        
+
+    def produce_lock(self, start=0, step=1, length=1, \
+            stop=0, mode='exclusive', data=None):
+        """ strategically created multiple target locks at a time
+        :param start        : the start offset of first lock to be set
+        :param length       : the length of each lock to be created 
+        :param step         : the interval of each adjacent locks
+        :param end          : the start offset of last lock should not exceeded
+        :param locking_mode : the locking mode to be used
+        """
+        filesize = getsize(self._fp)
+        lockstart = convert_size(start)
+        locklen = convert_size(length)
+        lockstop = convert_size(stop)
+        lockstep = convert_size(step)
+        lockmode = mode
+        
+        def locator(file_size=0, start=0, lock_length=1, step=1, stop=0):
+            """ yield specific location a time the lock to be created on 
+            :param start       : the start offset to lock
+            :param lock_length : length of each byte-range
+            :param step        : interval of each byte-range
+            :param stop        : the stop offset to lock
+            :yield             : (offset, length)
+            """
+            filesize = file_size
+            start = int(start)
+            stop = int(stop)
+            length = int(lock_length)
+            interval = int(step)
+
+            if interval + start > filesize:
+                interval = filesize - start
+
+            if length > (filesize - start) or length == 0:
+                length = filesize - start 
+                stop = filesize
+
+            if stop <= filesize and stop > 0:
+                filesize = stop
+
+            numiterate = int((filesize-start)/(interval+length))
+
+            #if interval != 0:
+            for o in range(0, (numiterate+1)):
+                activeoffset = start + o * (length+interval)
+                if length + activeoffset <= filesize:
+                    yield (activeoffset, length)
+     
+        locklocator = locator(file_size=filesize, start=lockstart, \
+                lock_length=locklen, step=lockstep, stop=lockstop)
+
+        for loc in locklocator:
+            lock =  NfvLock(offset=loc[0], length=loc[1], mode=lockmode, data=data)
+            self._repository.add(lock)
+
+        self.attach()
+
+
+    def wipe_lock(self):
+        """ empty all locks from manager
+        """
+        self._fp = None
+        self._fh = None
+        self._isattached = False
+
+        for lock in self._repository:
+            lock.wipe()
+            del lock
+
+        self._repository.clear()
+
+
+class NfvLock:
+    """ NfvLock Class
+    A class represent a lock (either a CIFS or NFS lock)
+    """
+    __slots__ = (
+            '_filepath',
+            '_filehandle',
+            '_startoffset',
+            '_stopoffset',
+            '_length',
+            '_mode',
+            '_data',
+            '_islocked',
+            '_lockmode',
+            '_isattached',
+            '_property',
+            '_id',
+    )
+
     if os.name == 'posix':
         # locking modes
         _LOCK_MODES = {
@@ -49,238 +215,180 @@ class NfvLockManager:
     else:
         sys.exit('Unsupported Platform! Only accepts NT and POSIX system.')
 
-
-    def __init__(self, file_path=None, locking_mode='exclusive'):
-        """ init
-        initialize the class's properties
+    def __init__(self, file_path=None, offset=0, length=1, mode='shared', data=None):
+        """ constructor function
         """
-        if not isfile(file_path):
-            raise ValueError("Given file: %s doesn't exist" % file_path)
-        if locking_mode not in self._LOCK_MODES.keys():
-            raise ValueError("Given locking_mode: %s is invalid$" % locking_mode)
-        if getsize(file_path) == 0:
-            raise ValueError("Size of given file: %s is 0, \
-                unable create lock on empty file!" % file_path)
+        if mode not in self._LOCK_MODES.keys() or mode == 'unlock':
+            raise ValueError("Given lock mode is invalid!")
 
-        self._file = file_path 
-        self._lockmode = locking_mode
-        self._filehandle = open(file_path, self._LOCK_MODES[self._lockmode][0])
-        self._locatenext = self._locator()
-        self._lockdb = collections.defaultdict(lambda : False)
+        self._filepath =  None
+        self._filehandle =  None
+        self._startoffset = offset
+        self._length = length
+        self._stopoffset = offset + length - 1
+        self._mode = mode.lower()
+        self._data = data
+        self._islocked = False
+        self._isattached = False
+        self._id = self._startoffset + self._stopoffset
 
-
-    def get_lock(self):
-        """ get_lock
-        get all lock detail information maintained by current LockManager object
-        :return  : a generator yield each existing lock 
-        """
-        # return a iterator object
-        return self._lockdb.keys()
-
-
-    def lock(self, offset=None, length=None, 
-            locking_mode='shared', with_io=None):
-        """ setlock
-        ceate a byte-range lock on specific location 
-        :param offset       : the start offset of the lock to be created
-        :param length       : the length of the lock to be created
-        :param locking_mode : the locking mode to be applied on lock
-        :param with_io      : data used for subsequent write/verify data
-        :return             : a tuple which stores the lock's attributes (file_hanlde, offset, length)
-        """
-        # parameters validation
-        lockstart = int(convertsize(offset))
-        locklen = int(convertsize(length))
-        # if offset or/and length was not given, 
-        # which value will be auto genrated
-        if offset is None and length is not None:
-            lockstart, _ = next(self._locatenext)
-        elif length is None and offset is not None:
-            _, locklen = next(self._locatenext)
-        elif length is None and offset is None:
-            try:
-                lockstart, locklen = next(self._locatenext)
-            except StopIteration:
-                return
+        if data:
+            self._data = data[:length]
         
+        # property
+        self._property = {
+            'file'        : self._filepath,
+            'offset'      : self._startoffset,
+            'length'      : self._length,
+            'mode'        : self._mode,
+            'data'        : self._data,
+            'is_locked'   : self._islocked,
+            'is_attached' : self._isattached,
+            'id'          : self._id,
+        }
+
+        if file_path:
+            self._filepath = file_path 
+            self._filehanle = open(file_path)
+
+
+    def attach(self, file_handle):
+        """ attach
+        attach lock object to specific file
+        """
+        self._filehandle = file_handle
+        self._filepath = file_handle.name
+        self._isattached = True
+
+
+    def detach(self):
+        """ attach
+        detach lock from file
+        """
+        if not self._islocked:
+            self._filepath = None
+            self._filehandle = None
+            self._isattached = False
+        else:
+            raise Exception("Lock is turned on, can't be detached")
+
+
+    def is_attached(self):
+       """ is_attached
+       return if current lock being attached to a file
+       """
+       return self._isattached
+
+
+    def get_property(self, name=None):
+        """ get_property
+        get the value of given property
+        """
+        if name is None:
+            return self._property
+        if name in self._property.keys():
+            return self._property[name]
+        else:
+            raise Exception("Given property name not found")
+
+
+    def on(self):
+        """ turn on the lock
+        """
+        if not self.is_attached():
+            raise Exception("lock hasn't attached to any file")
+
         if os.name == 'posix':
-            self._posix_lock(lockstart, locklen, locking_mode, with_io)
+            self._posix_lock()
         elif os.name == 'nt':
-            self._nt_lock(lockstart, locklen, locking_mode, with_io)
+            self._nt_lock()
 
-        # register to locking table
-        # plan to storage wrote checksum in 'value' field
-        self._lockdb[(lockstart, locklen)] = 1
+        self._islocked = True
 
-    def unlock(self, offset=None, length=None, with_io=None):
-        """ setlock
-        remove a byte-range lock on specific or random location
-        if offset or length was not given, random unlock one
-        :param offset      : the start offset of the lock to be created
-        :param length      : the length of the lock to be created
+
+    def off(self):
+        """ turn off the lock (unlock)
         """
-        lockstart = convertsize(offset)
-        locklen = convertsize(length)
-        randlock = None
+        if not self.is_attached():
+            raise Exception("lock hasn't attached to any file")
 
-        # if offset is not given, randomly select one from db to unlock
-        if offset is None and length is None:
-            if bool(self._lockdb):
-                randlock = random.choice(list(self._lockdb.keys()))
-                lockstart, locklen = randlock 
+        if os.name == 'posix':
+            self._posix_lock(lock_mode='unlock')
+        elif os.name == 'nt':
+            self._nt_lock(lock_mode='unlock')
+
+        self._islocked = False 
+
+    
+    def wipe(self):
+        """ delet current lock object
+        """
+        if self._isattached:
+            if self._islocked:
+                self.off()
+        else:
+            self.detach()
+
+
+    def _nt_lock(self, lock_mode='shared'):
+        """ manipulate NT byte-range lock
+        """
+        fh = self._filehandle
+        mode = lock_mode
+        offset = self._startoffset
+        length = self._length
+        data = self._data
+
+        try:
+            if data:
+                if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
+                    fh.seek(offset)
+                    msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
+                    # need to truncate extra content which exceeds end offset
+                    fh.write(data)
+                elif mode == 'shared' or mode == 'unlock':
+                    fh.seek(offset)
+                    readdata = fh.read(length) 
+                    if fh.read(length) != data:
+                        raise IOError("Data verification failed. expect:\
+                                %s | actual: %s" % (data, readdata))
+                    fh.seek(offset)
+                msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
             else:
-                logger.info("locking table is empty")
-                return
-        elif offset is not None and length is not None:
-            if not self._lockdb[(offset, length)]:
-                raise ValueError("ERROR: Given lock(%d, %d) was not found" % (offset, length))
-        
-        if os.name == 'posix' and self._lockdb[(lockstart, locklen)]:    
-            self._posix_lock(lockstart, locklen, 'unlock', with_io)
-        elif os.name == 'nt' and self._lockdb[(lockstart, locklen)]:    
-            self._nt_lock(lockstart, locklen, 'unlock', with_io)
-        
-        # udpate lock table
-        del self._lockdb[(lockstart, locklen)] 
+                self._filehandle.seek(offset)  # this will change the position to offset
+                msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
 
+        except Exception as e:
+            raise Exception(e)
+   
 
-    def multi_lock(self, start=0, step=1, stop=0, length=1, locking_mode='exclusive', with_io=None):
-        """ strategically created multiple target locks at a time
-        :param start        : the start offset of first lock to be set
-        :param length       : the length of each lock to be created 
-        :param step         : the interval of each adjacent locks
-        :param end          : the start offset of last lock should not exceeded
-        :param locking_mode : the locking mode to be used
-        """
-        lockstart = convertsize(start)
-        locklen = convertsize(length)
-        lockstop = convertsize(stop)
-        lockstep = convertsize(step)
-        
-        locklocator = self._locator(start=lockstart, lock_length=locklen, step=lockstep, stop=lockstop)
-
-        for loc in locklocator:
-            if os.name == 'posix':    
-                self._posix_lock(loc[0], loc[1], locking_mode, with_io)
-            elif os.name == 'nt' and not self._lockdb[loc]:    
-                self._nt_lock(lock[0], loc[1], locking_mode, with_io)
-            
-
-    def _posix_lock(self, offset=0, length=1, locking_mode='shared',  with_io=None):
+    def _posix_lock(self, lock_mode):
         """ posix_lock
         Create a posix byte-range lock
         """
         fh = self._filehandle
-        lockmode = locking_mode.lower()
-        withio = with_io
-        lockdata = struct.pack('hhllhh', self._LOCK_MODES[lockmode][1], 0, offset, length, 0, 0)
+        mode = lock_mode 
+        data = self._data
+        lockdata = struct.pack('hhllhh', self._LOCK_MODES[mode][1], 0, offset, length, 0, 0)
         try:
-            print('Set %s lock on byte range[%d - %d] of file: %s' 
-                    % (lockmode, offset, offset + length - 1, fh.name))
-        
             if withio:
-                if lockmode == 'exclusive_io' or lockmode == 'exclusive_blk_io':
-                    rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
+                if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
+                    rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
                     fh.seek(offset)
                     # truncate extra content which exceeds end offest
-                    fh.write(withio[:length])
-                elif lockmode == 'shared' or lockmode == 'unlock':
-                    # WARNING
+                    fh.write(data)
+                elif mode == 'shared' or mode == 'unlock':
+                    # NOTE
                     # the minimal size of kernel read is one page (4KB)
                     # hence the read may failed if target bytes
                     # which page was overlappped on other byte(s)
                     # owned by other lockowners
                     fh.seek(offset)
-                    readdata = fh.read(length)
-                    if readdata != withio:
-                        sys.exit("ERROR: data verification failed. expect: %s | actual: %s" 
-                                % (withio, readdata))
-                    rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
+                    readdata = fh.read(len(self._data))
+                    if readdata != data:
+                        sys.exit("ERROR: data verification failed. expect: %s | actual: %s" % (data, readdata))
+                rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
             else:
                 rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
-
-        except IOError as e:
-            raise IOError(e)
-
-
-    def _nt_lock(self, offset=0, length=1, locking_mode='shared',  with_io=None):
-        """ manipulate NT byte-range lock
-        """
-        fh = self._filehandle
-        lockmode = locking_mode.lower()
-        withio = with_io
-        try:
-            print('Set %s lock on range[%d - %d] of file: %s ' 
-                     % (lockmode, offset, offset + length -1, fh.name))
-            if withio: 
-                if lockmode == 'exclusive_io' or lockmode == 'exclusive_blk_io':
-                    fh.seek(offset)
-                    msvcrt.locking(fh.fileno(), LOCK_MODES[lock_mode][1], length)
-                    # need to truncate extra content which exceeds end offset
-                    fh.write(withio[:length])
-                elif lockmode == 'shared' or lockmode == 'unlock':
-                    fh.seek(offset)
-                    readdata = fh.read(length) 
-                    if readdata != withio[:length]:
-                        sys.exit("Data verification failed. expect: %s | actual: %s" % (withio, readdata))
-                    fh.seek(offset)
-                    msvcrt.locking(fh.fileno(), self._LOCK_MODES[lockmode][1], length)
-            else:
-                fh.seek(offset)  # this will change the position to offset
-                msvcrt.locking(fh.fileno(), self._LOCK_MODES[lockmode][1], length)
-
-        except IOError as e:
-            raise IOError(e) 
-
-        return True
-
-
-    def _locator(self, start=0, lock_length=1, step=1, stop=0):
-        """ yield specific location a time the lock to be created on 
-        :param start       : the start offset to lock
-        :param lock_length : length of each byte-range
-        :param step        : interval of each byte-range
-        :param stop        : the stop offset to lock
-        :return            : (offset, length)
-        """
-        filesize = getsize(self._file)
-        start = int(start)
-        stop = int(stop)
-        length = int(lock_length)
-        interval = int(step)
-
-        if interval + start > filesize:
-            interval = filesize - start
-
-        if length > (filesize - start) or length == 0:
-            length = filesize - start 
-            stop = filesize
-
-        if stop <= filesize and stop > 0:
-            filesize = stop
-
-        numiterate = int((filesize-start)/(interval+length))
-
-        #if interval != 0:
-        for o in range(0, (numiterate+1)):
-            activeoffset = start + o * (length+interval)
-            if length + activeoffset <= filesize:
-                yield (activeoffset, length)
-
-
-    def wipe($self, data_check=None):
-        """ unlock all existing lock and close file handle
-        """
-        # release all locks
-        for lock in $self._lockdb.keys():
-            self.unlock(offset=lock[0], length=lock[1], with_io=data_check)
-            del $self._lockdb[lock]
-
-        # close file handle  
-        $self._filehandle.close()
-
-
-
-
-
-
+        except Exception as e:
+            raise Exception(e)

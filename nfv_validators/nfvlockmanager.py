@@ -30,7 +30,6 @@ class NfvLockManager:
     Support manipulating both NFS and CIFS locks
     """
 
-
     def __init__(self, file_path=None, locks=[]):
         """ init
         initialize the class's property
@@ -374,9 +373,11 @@ class NfvLock:
             raise Exception("Current lock has already switched on")
         
         if os.name == 'posix':
-            self._posix_lock()
+            #self._posix_lock(lock_mode=self._mode)
+            pass
         elif os.name == 'nt':
-            self._nt_lock()
+            self._nt_lock(lock_mode=self._mode)
+            pass
 
         self._islocked = True
 
@@ -388,7 +389,8 @@ class NfvLock:
             raise Exception("lock hasn't attached to any file")
 
         if os.name == 'posix':
-            self._posix_lock(lock_mode='unlock')
+            #self._posix_lock(lock_mode='unlock')
+            pass
         elif os.name == 'nt':
             self._nt_lock(lock_mode='unlock')
 
@@ -405,7 +407,7 @@ class NfvLock:
             self.detach()
 
 
-    def _nt_lock(self, lock_mode='shared'):
+    def _nt_lock(self, lock_mode='exclusive'):
         """ _nt_lock
         manipulate NT byte-range lock
         :param lock_mode : the locking mode to be applied  
@@ -439,17 +441,17 @@ class NfvLock:
             raise Exception(e)
    
 
-    def _posix_lock(self, lock_mode):
+    def _posix_lock(self, lock_mode='exclusive'):
         """ posix_lock
         Create a posix byte-range lock
         :param lock_mode : the locking mode to be applied  
         """
         fh = self._filehandle
-        mode = lock_mode 
+        mode = lock_mode
         data = self._data
-        lockdata = struct.pack('hhllhh', self._LOCK_MODES[mode][1], 0, offset, length, 0, 0)
+        lockdata = struct.pack('hhllhh', self._LOCK_MODES[mode][1], 0, self._startoffset, self._length, 0, 0)
         try:
-            if withio:
+            if self._data:
                 if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
                     rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
                     fh.seek(offset)
@@ -465,9 +467,9 @@ class NfvLock:
                     readdata = fh.read(len(self._data))
                     if readdata != data:
                         sys.exit("ERROR: data verification failed. expect: %s | actual: %s" % (data, readdata))
-                rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
+                rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
             else:
-                rv = fcntl.fcntl(fh, self._LOCK_MODES[lockmode][2], lockdata)
+                rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
         except Exception as e:
             raise Exception(e)
 

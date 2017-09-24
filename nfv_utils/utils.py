@@ -5,6 +5,8 @@ import time
 import logging
 import hashlib
 import pdb
+import string
+from random import Random
 
 from os.path import exists
 
@@ -123,4 +125,26 @@ def encipher_string(string=None, store=None):
         store[stringcks] = True
     else:
         return stringcks
+
  
+def random_string(length=8, seed=None):
+    """ generate a random string
+    :param length : length of target string to be generated
+    :return       : generated string
+    """
+    strlength= length
+    randomstring = '' 
+
+    if seed is None:
+        chars = [(c) for c in string.ascii_lowercase + string.ascii_uppercase + '0123456789']
+    else:
+        chars = [(c) for c in seed]
+
+    for _ in range(strlength):
+        # rand chars will generate a random
+        # number between 0 and length of chars
+        randobj = Random()
+        offset = randobj.randint(0, len(chars)-1)
+        randomstring += chars[offset]
+
+    return randomstring

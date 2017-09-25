@@ -6,6 +6,7 @@ import logging
 import hashlib
 import pdb
 import string
+from random import Random
 
 from os.path import exists
 from random import Random
@@ -133,19 +134,42 @@ def convert_size(raw_size):
         sys.exit("ERROR: Passed size is malformed!")
 
 
-def encipher_string(string=None, store=None):
+def encipher_data(data=None, store=None):
     """ encode the given string to a checksum code, then put it in to store db
     :encipher : target string to be enciphered
     :return   : checksum of given string
     """
-    if string is None:
+    if data is None:
         raise  ValueError("Parameter string is required")
     # using 'sha' result as unique db key to reduce the hosts' memory consumption
     hashmd5 = hashlib.md5()
-    stringcks = hashmd5.update(string.encode('utf8'))
-    # Start over if the string is already in the Database
+    hashmd5.update(data)
+    datacks = hashmd5.digest()
+    # Start over if the data is already in the Database
     if store:
-        store[stringcks] = True
+        store[datacks] = True
     else:
-        return stringcks
+        return datacks
+
  
+def random_string(length=8, seed=None):
+    """ generate a random string
+    :param length : length of target string to be generated
+    :return       : generated string
+    """
+    strlength= length
+    randomstring = '' 
+
+    if seed is None:
+        chars = [(c) for c in string.ascii_lowercase + string.ascii_uppercase + '0123456789']
+    else:
+        chars = [(c) for c in seed]
+
+    for _ in range(strlength):
+        # rand chars will generate a random
+        # number between 0 and length of chars
+        randobj = Random()
+        offset = randobj.randint(0, len(chars)-1)
+        randomstring += chars[offset]
+
+    return randomstring

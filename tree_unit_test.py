@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 from nfv_tree.nfvtree import NfvTree, NfvFile
 from nfv_utils.utils import random_string
 import pdb
+
+from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
+
 
 def deploy_tree():
     """  deploy a file tree
@@ -10,26 +14,22 @@ def deploy_tree():
     # NfvIoMocker
     mytree = NfvTree(tree_root='E:\\testshare\\VohcqS2V')
 
+    mytree = NfvTree(tree_root='testshare/numbertest')
+    iotactic = NfvIoTactic(io_size='2k', data_pattern='random', data_check=True)
+    mytree.set_io_tactic(iotactic)
+    mytree.resize(number=0)
+    print("init: %d" % mytree.get_property('file_number'))
+    mytree.resize(number=100, file_size='100K')
+    print("affter resize 100: %d" % mytree.get_property('file_number'))
+    mytree.resize(number=90, file_size='100K')
+    print("affter resize 90: %d" % mytree.get_property('file_number'))
+    mytree.resize(number=0, file_size='100k')
+    print("affter resize 0: %d" % mytree.get_property('file_number'))
+    mytree.resize(number=40, file_size='100k')
+    print("affter resize 40: %d" % mytree.get_property('file_number'))
+    #mytree.create_file(number=100, size='1M')
+    #print(len(mytree._files))
 
-"""
-    treeconfig1 = NfvTreeConfigure()
-    treeconfig1.io = NfvPatternGenerator(pattern='random', size=8k)
-    treeconfig1.seek_type = 'seq'
-    treeconfig1.data_check = True
-    treeconfig1.file_size = '1G'
-
-    treeconfig2 = NfvIoConfigure()
-    treeconfig2.io = NfvPatternGenerator(pattern='random', size=8k)
-    treeconfig2.seek = 'seq'
-    treeconfig2.data_check = False
-    treeconfig2.file_size = '10M'
-    treeconfig2.file_number = '10M'
-
-    mydeployer=load_config(config=treeconfig1)
-
-    # start to deploy
-    mydeployer.deploy()
-"""
 
 if __name__ == '__main__':
     deploy_tree()

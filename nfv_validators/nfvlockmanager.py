@@ -21,19 +21,19 @@ elif os.name == 'nt':
 # NFV modules
 from os.path import isfile, exists, getsize
 from nfv_utils.utils import convert_size
+from nfv_tree.nfvtree import NfvFile
 
 
 
 class NfvLockManager:
-    """ NfvLockManager Class
-    Manages all lock objects it contains, do not support duplication locks
+    """ Manages all lock objects it contains
     Support manipulating both NFS and CIFS locks
     """
 
     def __init__(self, file_path=None, locks=[]):
         """ init
-        initialize the class's property
-        :param  locks  : a list stores all locks managed
+        initialize the object variables
+        :param  locks  : a list stores NfvLock object 
         """
         self._fp = None
         self._fh = None
@@ -46,8 +46,7 @@ class NfvLockManager:
 
 
     def add_lock(self, lock=None):
-        """ add_lock
-        add a nfv lock object to nfv manager
+        """ add a nfv lock object to nfv manager
         it only add existing lock rather than creating new lock
         if manager object is attached a specific, the added lock
         will be attached automatically
@@ -79,15 +78,18 @@ class NfvLockManager:
             raise ValueError("Given NfvLock object is invalid!")
 
 
-    def attach(self, file_path=None):
+    def attach(self, file=None):
         """ attach
-        Attach lock objects to a specific file
+        Attach lock objects to a NfvFile object
         :param  : path of target file to be attached
         """
         if self._isattached:
             raise Exception("Current NfvLogManager object already being attached")
 
-        if file_path is not None:
+        if type(file) is not NfvFile:
+            raise Exception("Passed file is not a NfvFile object")
+
+        if file.get_property(name = path) is not None:
             self._fh = open(file_path)
             self._fp = file_path
 
@@ -110,7 +112,7 @@ class NfvLockManager:
                 lock.detach()
 
     
-    def produce_lock(self, length=1, mode='exclusive', data=None):
+    def create_lock(self, length=1, mode='exclusive', data=None):
         """ sequencially create a NfvLock object at a time, 
             try best to produce maximu number of locks, 
             which attach status will be sync-ed up with NfvLockManager status

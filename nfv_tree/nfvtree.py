@@ -5,8 +5,9 @@ import os
 import sys
 import pdb
 import re
+import copy
 
-from shutil import rmtree
+from shutil import copyfile, move, rmtree
 from hashlib import md5
 from random import randint, shuffle
 from os import path, makedirs, listdir, walk
@@ -126,6 +127,7 @@ class NfvTree:
         if type(tactic) is not NfvIoTactic:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
         self._iotactic = tactic
+        
 
     
     def remove_file(self, file=None, number=1):
@@ -215,15 +217,24 @@ class NfvTree:
         :param dest_path : destination path the file to be copied to  
         :return          :  NfvFile object just been copied
         """
-        pass
+        tmpset = set()
+        for f in self._files:
+            tmpset.add(f.copy())
+        self._files = self._files.union(tmpset)
+        
+        self.update()
 
 
-    def move(self):
-        """ move on-disk file tree to another tree root
-        :param dest_path : destination path the file to be copied to  
+    def rename(self, name_seed=None, name_length=8):
+        """ rename all on-disk file within file tree
+        :param name_length : destination 
         :return          :  NfvFile object just been removed
         """
-        pass
+        tmpset = set()
+        for f in self._files:
+            f.rename(name_length, name_seed)
+        
+        self.update()
 
 
     def checksum(self):
@@ -248,6 +259,21 @@ class NfvTree:
         """
         for f in self._files:
             f.read()
+    
+
+    def clear_file(self):
+        """ clear all on-disk files within tree
+        :return  : *none*
+        """
+        try:
+            while True:
+                f = self._files.pop()
+                f.remove()
+        except KeyError as e:
+            if re.search('pop from an empty set', str(e)):
+                pass
+            else:
+                raise KeyError(e)
 
 
     def wipe(self):
@@ -256,11 +282,11 @@ class NfvTree:
         # clear files
         for f in self._files:
             f.remove()
+        self._files = {}
         # clear dirs
         rmtree(self._root)
+        self._dirs = {}
   
-        del self
-        
 
     def __iter__(self):
         """ iterator implemention
@@ -390,7 +416,6 @@ class NfvFile:
         if io_tactic is None:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
         self._iotactic = io_tactic
-        pass
 
 
     def truncate(self, size=None):   
@@ -416,20 +441,37 @@ class NfvFile:
         pass
 
 
-    def copy(self):
+    def copy(self, dest_path=None):
         """ copy the on-disk file to another path
-        :param dest_path : destination path the file to be copied to  
-        :return          :  NfvFile object just been copied
+        :param dest_path : destination path the file to be copied to, if it's not 
+                           provided, use current dir as destination  folder
+        :return          : NfvFile object just been copied
         """
-        pass
+        if dest_path is None:
+            dest_path = join(self._dir, random_string(8))
+        try:
+            cfile = copy.deepcopy(self)
+            cfile._path = dest_path
+            cfile.new()
+           
+        except Exception as e:
+            raise Exception(e)
+           
+        return cfile
 
 
-    def move(self):
+    def rename(self, name_length=8, name_seed=None):
         """ move on-disk file to another path
-        :param dest_path : destination path the file to be copied to  
-        :return          :  NfvFile object just been removed
+        :param name_seed   : seed for constitution a file name
+        :param name_length : length of new file name
+        :return            : *none*
         """
-        pass
+        try:
+            newpath = join(self._dir, random_string(name_length, name_seed))
+            move(self._path, newpath)
+            self._path = newpath
+        except Exception as e:
+            raise Exception(e)
 
 
     def overwrite(self):

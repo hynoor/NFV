@@ -4,7 +4,7 @@ import pdb
 import re
 
 from shutil import rmtree
-from random import randint
+from random import randint, shuffle
 from os import path, makedirs, listdir, walk
 from os.path import exists, join, getsize
 from collections import namedtuple, defaultdict
@@ -14,8 +14,7 @@ from nfv_utils.utils import convert_size, random_string, encipher_data
 
 
 class NfvTree:
-    """ NfvTree
-    represent a file tree object 
+    """ Represent a file tree
     """
     __slots__ = (
             '_root',
@@ -31,8 +30,12 @@ class NfvTree:
     )
 
     def __init__(self, tree_root=None, tree_width=1, tree_depth=1, dir_length=8):
-        """ init
-        Constructor for instaniate a empty file tree
+        """ Constructor for instaniating a empty file tree
+        :param tree_root  : root directory of file tree
+        :param tree_width : the width of file tree
+        :param tree_depth : the depth of file tree
+        :param dir_length : the length of a sub folder name
+        :return           : NfvTree object
         """
         self._root = tree_root
         self._width = tree_width
@@ -52,7 +55,9 @@ class NfvTree:
 
 
     def new(self, dir=None, tree_width=1, tree_depth=1):
-        """ deploy dirs of file tree
+        """ initialize a tree object
+        :param tree_width : the width of file tree
+        :param tree_depth : the depth of file tree
         """
         width = tree_width
         depth = tree_depth
@@ -67,10 +72,10 @@ class NfvTree:
                 self.new(dir=join(dir, d), tree_width=width, tree_depth=depth-1)
 
         return
-   
+  
+
     def update(self):
-        """ update
-        recalculate the total size of tree
+        """ recalculate the total size of tree
         """      
         self._treesize = 0
         for f in self._files:
@@ -78,8 +83,7 @@ class NfvTree:
         
 
     def create_file(self, size='8K', number=1, io_tactic=None):
-        """ create_file
-        create user specific number of files with given io tactic 
+        """ create file(s) with given io tactic 
         """
         if io_tactic is None and self._iotactic is None: 
             raise ValueError("ERROR: need io_tactic specific before any I/O operation!")
@@ -95,8 +99,9 @@ class NfvTree:
 
 
     def load_tree(self, tree_root=None):
-        """ load_tree
-        load a existing file tree into memory
+        """ load an existing on-disk file tree into memory
+        :param tree_root : root path of file tree
+        :return          : NfvTree object
         """
         if not exists(tree_root):
             raise Exception("Given dir %s doesn't exist!" % tree_root)
@@ -110,8 +115,9 @@ class NfvTree:
 
 
     def set_io_tactic(self, tactic=None):
-        """ io_tactic
-        load tactic for manipulating file tree
+        """ set io tactic for the file tree
+        :param tactic : NfvIoTactic object
+        :return       : *none*
         """
         if type(tactic) is not NfvIoTactic:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
@@ -120,7 +126,9 @@ class NfvTree:
     
     def remove_file(self, file=None, number=1):
         """ remove files from tree randomly
+        :param file   : NfvFile object
         :param number : number of file to be removed
+        :return       : *none*
         """
         if file is not None and file in self._files:
             self._files(path)
@@ -137,11 +145,9 @@ class NfvTree:
 
 
     def get_property(self, name=None):
-        """ get_property
-        get the value of given property
-        :param name : name of property to be got
-        :return     : value of given parameter name, 
-                    : if param name was not given, 
+        """ get the value of given property
+        :param name : name of property to be retrieved
+        :return     : value of given parameter name, if param name was not given, 
                     : all properties will be returned
         """
         properties = {
@@ -161,9 +167,11 @@ class NfvTree:
             raise Exception("Given property name not found")
     
 
-    def resize(self, number, file_size='8k'):
-        """ resize the total number of files within file tree
-        :param file_number : number of files to be resized
+    def tailor(self, file_number=None, file_size='8k'):
+        """ tailor the total number of files within file tree
+        :param file_number : number of files to be tailord to
+        :param file_size   : size of file which to be added
+        :retrun            : *none*
         """
         deltanum = abs(number - len(self._files))
         if number > len(self._files):
@@ -171,10 +179,11 @@ class NfvTree:
         if number < len(self._files):
             self.remove_file(number=deltanum)
 
+        self.update()
+
 
     def wipe(self):
-        """ wipe 
-        wipe the entire tree and including its containing files
+        """ wipe the entire tree and including its containing files
         """        
         # clear files
         for f in self._files:
@@ -186,8 +195,7 @@ class NfvTree:
         
 
     def __iter__(self):
-        """ iter 
-        iterator implemention
+        """ iterator implemention
         """
         for f in self._files:
             yield f
@@ -195,15 +203,18 @@ class NfvTree:
    
 
 class NfvFile:
-    """ NfvFile
-    represent a file object
+    """ represent a file object
     """
     __slots__ = ('_path', '_size', '_inode', '_dir', '_name', '_uid', '_iotactic')
 
     _io_check_db = defaultdict(lambda : None)
 
     def __init__(self, path=None, size='8k', io_tactic=None):
-        """ init
+        """ initialize a NfvFile object
+        :param path      : path of the on-disk file to be initialized
+        :param size      : size of the file to be initialized (when creates a new file)
+        :param io_tactic : NfvIoTactic object to be used for I/O operation
+        :return          : NfvFile object
         """
         if path is None:
             raise ValueError("Error: parameter file_path is required!")
@@ -216,30 +227,45 @@ class NfvFile:
             self.new()
         else:
             self.load_file(path)
-    
+   
+
     def new(self):
-        """ new
-        Create a new file
+        """ craete a NfvFile on-disk file object
+        :return : *none*
         """
         if self._iotactic is None:
             raise ValueError("Error: parameter tactic is required!")
         numwrite = self._size // self._iotactic.get_property('io_size')
         remainder = self._size % self._iotactic.get_property('io_size')
-        with open(self._path, 'wb+') as fh:
-            while numwrite > 0:
+        indexsupplier = self._iotactic.seek_to(self._size)
+        if remainder > 0:
+            rindex = next(indexsupplier)
+        with open(self._path, 'w+b') as fh:
+            if remainder > 0 and self._iotactic._seek == 'reverse':
                 data = self._iotactic.get_data()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
+                fh.seek(rindex)
+                fh.write(data[:remainder])
+            for idx in indexsupplier:
+                data = self._iotactic.get_data()
+                if self._iotactic._datacheck:
+                    NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
+                fh.seek(idx)
                 fh.write(data)
-                numwrite -= 1
-            fh.write(data[:remainder])
+            if remainder > 0 and (self._iotactic._seek == 'seq' or self._iotactic._seek == 'random'):
+                data = self._iotactic.get_data()
+                if self._iotactic._datacheck:
+                    NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
+                fh.seek(rindex)
+                fh.write(data[:remainder])
         if self._iotactic._datacheck:
             self._verify_file()
-    
+   
+
     def _verify_file(self):
-        """ verfiy_file
-        verfiy the consistency of data of on-disk file
-        do not use it directly on a NfvFile object
+        """ verfiy the data of on-disk file (do not use it directly on a NfvFile object)
+        :return : *none*
         """
         with open(self._path, 'rb') as fh:
             if not NfvFile._io_check_db[encipher_data(fh.read(self._iotactic._iosize))]:
@@ -251,20 +277,18 @@ class NfvFile:
 
 
     def load_file(self, path):
-        """ load_file
-        load a existing file
+        """ load an existing on-disk file and initialize a NfvFile object
+        :param path : path of the on-disk file
+        :return     : *none*
         """
         self._size = getsize(path) 
         self._dir, self._name = os.path.split(path)
-        pass
 
   
     def get_property(self, name=None):
-        """ get_property
-        get the value of given property
-        :param name : name of property to be got
-        :return     : value of given parameter name, 
-                      if param name was not given, return all properies
+        """ get the value of given property
+        :param name : name of property to be retrieved
+        :return     : value of given parameter name, if param name was not given, return all properies
         """
         properties = {
                 'path'       : self._path,
@@ -282,8 +306,9 @@ class NfvFile:
 
 
     def set_io_tactic(io_tactic=None):
-        """ load_tactic
-        load tactic for file manipulations
+        """ set the tactic for file I/O manipulations
+        :param io_tactic : NfvIoTactic object
+        :return          : *none*
         """
         if io_tactic is None:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
@@ -291,58 +316,66 @@ class NfvFile:
         pass
 
 
-    def truncate(self):   
-        """ truncate
-        truncate the on-disk to specific size
+    def truncate(self, size=None):   
+        """ truncate the on-disk to specific size
+        :param size : size to be truncated to
+        :return     : *none*
         """
-        pass
+        if size is None:
+            pass
+        else:
+            with open(self._path, 'a') as fh:
+                fh.truncate(size)
 
-    def append(self):
-        """ append
-        append the on-disk file to specific size with specific tactic
+
+    def append(self, delta=None):
+        """ append the on-disk file to specific size with specific tactic
+        :param delta : delta size of to be appended
+        :return     : *none*
         """
         pass
 
 
     def copy(self):
-        """ copy
-        copy the on-disk file to another path
-        :return  : a copied NfvFile object
+        """ copy the on-disk file to another path
+        :param dest_path : destination path the file to be copied to  
+        :return          :  NfvFile object just been copied
         """
         pass
 
 
     def move(self):
-        """ move
-        move on-disk file to another path
-        :return  : a NfvFile object
+        """ move on-disk file to another path
+        :param dest_path : destination path the file to be copied to  
+        :return          :  NfvFile object just been removed
         """
         pass
 
+
     def overwite(self):
-        """ overwrite
-        overwrite the on-disk file
+        """ overwrite the on-disk file
+        :return  :  NfvFile object just been rewrote
         """
         pass
 
 
     def read(self):
-        """ read
-        read the data of on-disk file
+        """ read the data of on-disk file
+        :return  : *none*
         """
         pass
 
    
     def checksum(self):
-        """ checksum
-        checksum the data of on-disk file
+        """ checksum the data of on-disk file
+        :return  : *none*
         """
         pass
 
   
     def remove(self):
-        """ romove
-        remove the ondisk file
+        """ remove the ondisk file
+        :return  : *none*
         """
         try: 
             os.remove(self._path)
@@ -357,12 +390,16 @@ class NfvIoTactic:
     the class defines the tactic of I/O
     """ 
     __slots__ = ('_iosize', '_datapattern', '_seek', '_property', '_data', '_datacheck')
-    _seeks = ('seq', 'rand', 'reverse')
+    _seeks = ('seq', 'random', 'reverse')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
     def __init__(self, io_size='8k', data_pattern='fixed', seek_type='seq', data_check=True):
-        """ init 
-        constructor
+        """ NfvIoTactic constructor
+        :param io_size      : io size of tactic to be adopted
+        :param data_pattern : data pattern of io tactic to be adopted
+        :param seek_type    : seek type of tactic to be adopted
+        :param data_check   : a bool flag indicates if perform immediate data check on each file
+        :return             : NfvIoTactic object
         """
         if seek_type not in self._seeks:
             raise ValueError("ERROR: Given seek type %s is invalid!" % seek_type)
@@ -376,14 +413,34 @@ class NfvIoTactic:
             self.random_pattern()
         elif self._datapattern == 'fixed':
             self.fixed_pattern()
+            
+
+    def set_property(self, attrs={}):
+        """ set given properties
+        :param attrs : a dict contains the property-value pairs to be set
+        :return      : *none*
+        """
+        properties = {
+            'io_size'      : '_iosize',
+            'data_pattern' : '_datapattern',
+            'seek_type'    : '_seek',
+            'data_check'   : '_datacheck',
+        }
+        if type(attrs) is not dict:
+            raise ValueError("ERROR: dictinonary param 'attrs' is required!")
+        for key, value in attrs.items():
+            if key in properties.keys():
+                setattr(self, properties[key], value)
+            else:
+                raise Exception("Given property name not found")
+
+        self._iosize = convert_size(self._iosize)
 
 
     def get_property(self, name=None):
-        """ get_property
-        get the value of given property
-        :param name : name of property to be got
-        :return     : value of given parameter name, 
-                      if param name was not given, return all properies
+        """ get the value of given property
+        :param name : name of property to be retrieved
+        :return     : value of given parameter name, if param name was not given, return all properies
         """
         properties = {
             'io_size'      : self._iosize,
@@ -400,8 +457,8 @@ class NfvIoTactic:
 
 
     def get_data(self):
-        """ get_data
-        offer the prepare data for I/O 
+        """ renew data for each I/O 
+        :return : *none*
         """
         if self._datapattern == 'random':
             self.random_pattern()
@@ -410,15 +467,17 @@ class NfvIoTactic:
 
         return self._data
 
+
     def random_pattern(self):
-        """ random pattern
-        renew random data pattern
+        """ renew self._data with random data pattern
+        :return : *none*
         """
         self._data = self.get_rand_buffer(self._iosize, self._datagranary)
 
 
     def fixed_pattern(self, pattern=None):
-        """ fixed pattern
+        """ renew the fixed pattern
+        :return : *none*
         """
         tmpbytes = bytes('This is a string used for NFV testing', encoding='utf_8')
         if pattern is not None:
@@ -434,9 +493,10 @@ class NfvIoTactic:
 
     @staticmethod
     def get_rand_buffer(size, buffer):
-        """ fetch a piece of random data
-        :param size   : data size to be fetched
-        :param buffer : source buffer pool where data stores
+        """ randomly grab a piece of random bytes of data
+        :param size   : size of data to be fetched
+        :param buffer : buffer where data pool stores
+        :return       : data grabbed 
         """
         bufsize = len(buffer) - 33
         offset = randint(0,bufsize)
@@ -453,19 +513,51 @@ class NfvIoTactic:
                 buf = buffer[start:start+size]
                 ret += buf
                 size-= len(buf)
+
         return ret
 
 
-    @staticmethod
-    def seek_to(self):
-        """ seek_to
-        offer the next io location (generator function)
+    def seek_to(self, file_size=0):
+        """ this method calculate the index of each write will locates on 
+            this is the fundamental algrithm for seek-type
+        :param file_size : file size of target file used to constituted the seek strategy
+        :return          : a generate object to supply the indexes
         """
-        pass
+        numwrite = file_size // self._iosize
+        remainder = file_size % self._iosize
+        filesize = numwrite * self._iosize + remainder
+        modfilesize = numwrite * self._iosize
+        if remainder > 0:
+            yield (filesize - remainder)
+        if self._seek == 'seq':
+            for idx in range(0, numwrite):
+                yield idx * self._iosize
+        elif self._seek == 'reverse':
+            for idx in range(numwrite, 0, -1):
+                yield ((idx*self._iosize) - self._iosize)
+        elif self._seek == 'random':
+            # one million rought use 20MB memory
+            # it's not the fully random algorithm
+            # while the number of I/O beyound a million
+            # accroding to trial, 'random' mode could be 
+            # up to 3x slower then 'seq'
+            million = 1000 * 1000
+            numslice = numwrite // million 
+            remainder = numwrite % million
+            slicegroup = []
+            if numslice > 0:
+                for idx in range(0, numwrite, million):
+                    slicegroup.append([idx, idx+million])
+                # remove last item is invalid which exceed 'numwrite'
+                slicegroup.pop()
+            if remainder > 0: 
+                slicegroup.append([(numwrite - remainder), numwrite])
+            shuffle(slicegroup)
+            for s in slicegroup:
+                slicelist = list(range(s[0], s[1]))
+                shuffle(slicelist)
+                for idx in slicelist:
+                    yield idx * self._iosize
+                slicelist = []
 
-
-
-
-
-        
 

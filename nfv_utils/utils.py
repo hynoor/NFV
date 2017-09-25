@@ -140,7 +140,7 @@ def encipher_data(data=None, store=None):
     :return   : checksum of given string
     """
     if data is None:
-        raise  ValueError("Parameter string is required")
+        raise  ValueError("Parameter data is required")
     # using 'sha' result as unique db key to reduce the hosts' memory consumption
     hashmd5 = hashlib.md5()
     hashmd5.update(data)

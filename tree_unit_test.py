@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from nfv_tree.nfvtree import NfvTree, NfvFile
 from nfv_utils.utils import random_string
 import pdb
@@ -12,23 +11,23 @@ def deploy_tree():
     # NfvTree
     # NfvPolicy
     # NfvIoMocker
-    mytree = NfvTree(tree_root='E:\\testshare\\VohcqS2V')
-
-    mytree = NfvTree(tree_root='testshare/numbertest')
-    iotactic = NfvIoTactic(io_size='2k', data_pattern='random', data_check=True)
+    mytree = NfvTree(tree_root='/mnt/nfv/testshare/numbertest', tree_width=2, tree_depth=2)
+    iotactic = NfvIoTactic(io_size='8k', data_pattern='random', seek_type='reverse', data_check=True)
+    print(iotactic.get_property())
+    #pdb.set_trace()
+    updateattrs = {
+            'io_size'      : '2k',
+            'data_pattern' : 'random',
+            'seek_type'    : 'random',
+    }
+    iotactic.set_property(attrs=updateattrs)
+    print(iotactic.get_property())
     mytree.set_io_tactic(iotactic)
-    mytree.resize(number=0)
-    print("init: %d" % mytree.get_property('file_number'))
-    mytree.resize(number=100, file_size='100K')
-    print("affter resize 100: %d" % mytree.get_property('file_number'))
-    mytree.resize(number=90, file_size='100K')
-    print("affter resize 90: %d" % mytree.get_property('file_number'))
-    mytree.resize(number=0, file_size='100k')
-    print("affter resize 0: %d" % mytree.get_property('file_number'))
-    mytree.resize(number=40, file_size='100k')
-    print("affter resize 40: %d" % mytree.get_property('file_number'))
-    #mytree.create_file(number=100, size='1M')
-    #print(len(mytree._files))
+    mytree.tailor(number=40, file_size='10M')
+    print("affter tailor 1: %d" % mytree.get_property('file_number'))
+    print("total size of tree: %d" % mytree.get_property('tree_size'))
+
+    # mytree.wipe()
 
 
 if __name__ == '__main__':

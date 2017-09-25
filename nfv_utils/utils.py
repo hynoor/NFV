@@ -119,7 +119,8 @@ def encipher_string(string=None, store=None):
         raise  ValueError("Parameter string is required")
     # using 'sha' result as unique db key to reduce the hosts' memory consumption
     hashmd5 = hashlib.md5()
-    stringcks = hashmd5.update(string.encode('utf8'))
+    hashmd5.update(string.encode('utf-8'))
+    stringcks = hashmd5.digest()
     # Start over if the string is already in the Database
     if store:
         store[stringcks] = True

@@ -33,14 +33,9 @@ def deploy_tree():
     mytree = NfvTree(tree_root="testshare/numbertest")
     mytree.clear_file()
     mytree.tailor(file_number=10, file_size='1m')
-    print("----- BEFORE RENAME -----")
-    for f in mytree:
-        print(f.get_property('path'))
-
-    mytree.rename(name_length=10)
-    print("----- AFTER RENAME -----")
-    for f in mytree:
-        print(f.get_property('path'))
+    iotactic = NfvIoTactic(data_pattern='random', data_check=True)
+    mytree.set_io_tactic(iotactic)
+    mytree.overwrite()
 
 if __name__ == '__main__':
     deploy_tree()

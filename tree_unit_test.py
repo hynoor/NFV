@@ -1,15 +1,17 @@
 from nfv_tree.nfvtree import NfvTree, NfvFile
+from nfv_utils.utils import random_string
+import pdb
 
-
-def delpoy_tree():
+def deploy_tree():
     """  deploy a file tree
     """
     # NfvTree
     # NfvPolicy
     # NfvIoMocker
+    mytree = NfvTree(tree_root='E:\\testshare\\VohcqS2V')
 
-    mytree = NfvTree(tree_root='testshare/testtree' width=3, depth=3)
 
+"""
     treeconfig1 = NfvTreeConfigure()
     treeconfig1.io = NfvPatternGenerator(pattern='random', size=8k)
     treeconfig1.seek_type = 'seq'
@@ -27,4 +29,7 @@ def delpoy_tree():
 
     # start to deploy
     mydeployer.deploy()
+"""
 
+if __name__ == '__main__':
+    deploy_tree()

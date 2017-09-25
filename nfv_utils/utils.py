@@ -5,8 +5,10 @@ import time
 import logging
 import hashlib
 import pdb
+import string
 
 from os.path import exists
+from random import Random
 
 class MyLogger:
     """ MyLogger Class
@@ -74,6 +76,29 @@ class MyLogger:
 
         self.__recordhandler__.setLevel(self.LOG_LEVELS[log_level])
         self.__consolehandler__.setLevel(self.LOG_LEVELS[log_level])
+
+
+def random_string(size=8, seed=None):
+    """ generate a random string
+    :param size : length of target string to be generated
+    :param seed : seed to be used for generating string
+    :return     : generated string
+    """
+    randomstring = '' 
+
+    if seed is None:
+        chars = [(c) for c in string.ascii_lowercase + string.ascii_uppercase + '0123456789']
+    else:
+        chars = [(c) for c in seed]
+
+    for _ in range(size):
+        # rand chars will generate a random
+        # number between 0 and length of chars
+        randobj = Random()
+        offset = randobj.randint(0, len(chars)-1)
+        randomstring += chars[offset]
+
+    return randomstring
 
 
 

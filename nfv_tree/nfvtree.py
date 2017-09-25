@@ -75,8 +75,6 @@ class NfvTree:
             for d in listdir(dir):
                 self.new(dir=join(dir, d), tree_width=width, tree_depth=depth-1)
 
-        return
-  
 
     def update(self):
         """ recalculate the total size of tree
@@ -228,6 +226,14 @@ class NfvTree:
         pass
 
 
+    def checksum(self):
+        """ overwrite the on-disk file tree
+        :return  : *none*
+        """
+        for f in self._files:
+            f.checksum()
+
+
     def overwrite(self):
         """ overwrite the on-disk file tree
         :return  : *none*
@@ -325,6 +331,7 @@ class NfvFile:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(rindex)
                 fh.write(data[:remainder])
+
         if self._iotactic._datacheck:
             self._verify_file()
    
@@ -333,10 +340,13 @@ class NfvFile:
         """ verfiy the data of on-disk file (do not use it directly on a NfvFile object)
         :return : *none*
         """
+        numread = self._size // self._iotactic.get_property('io_size')
         with open(self._path, 'rb') as fh:
-            if not NfvFile._io_check_db[encipher_data(fh.read(self._iotactic._iosize))]:
-                print('database dump: %s' % NfvFile._io_check_db)
-                raise Exception("ERROR: data check failed!")
+            while numread > 0:
+                if not NfvFile._io_check_db[encipher_data(fh.read(self._iotactic._iosize))]:
+                    print('database dump: %s' % NfvFile._io_check_db)
+                    raise Exception("ERROR: data check failed!")
+                numread -= 1
 
         # rest db to release resource 
         NfvFile._io_check_db = {}
@@ -621,10 +631,9 @@ class NfvIoTactic:
         """
         numwrite = file_size // self._iosize
         remainder = file_size % self._iosize
-        filesize = numwrite * self._iosize + remainder
         modfilesize = numwrite * self._iosize
         if remainder > 0:
-            yield (filesize - remainder)
+            yield (file_size - remainder)
         if self._seek == 'seq':
             for idx in range(0, numwrite):
                 yield idx * self._iosize

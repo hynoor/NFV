@@ -403,6 +403,11 @@ class NfvIoTactic:
         """ get_data
         offer the prepare data for I/O 
         """
+        if self._datapattern == 'random':
+            self.random_pattern()
+        elif self._datapattern == 'fixed':
+            self.fixed_pattern()
+
         return self._data
 
     def random_pattern(self):
@@ -436,8 +441,7 @@ class NfvIoTactic:
         bufsize = len(buffer) - 33
         offset = randint(0,bufsize)
         bufend = bufsize - 1
-        ret = ''
-        pdb.set_trace()
+        ret = bytes()
         while size>0:
             if (size > bufsize):
                 buf = buffer[offset:bufend]

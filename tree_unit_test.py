@@ -9,7 +9,7 @@ def deploy_tree():
     # NfvIoMocker
 
     mytree = NfvTree(tree_root='testshare/numbertest')
-    iotactic = NfvIoTactic(io_size='2k', data_check=True)
+    iotactic = NfvIoTactic(io_size='2k', data_pattern='random', data_check=True)
     mytree.set_io_tactic(iotactic)
     mytree.resize(number=0)
     print("init: %d" % mytree.get_property('file_number'))

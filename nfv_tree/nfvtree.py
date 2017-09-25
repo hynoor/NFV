@@ -128,7 +128,6 @@ class NfvTree:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
         self._iotactic = tactic
         
-
     
     def remove_file(self, file=None, number=1):
         """ remove files from tree randomly
@@ -238,7 +237,7 @@ class NfvTree:
 
 
     def checksum(self):
-        """ overwrite the on-disk file tree
+        """ checksum all the on-disk files within file tree
         :return  : *none*
         """
         for f in self._files:
@@ -249,7 +248,11 @@ class NfvTree:
         """ overwrite the on-disk file tree
         :return  : *none*
         """
+        if self._iotactic is None:
+            raise ValueError("Error: parameter tactic is required!")
+        
         for f in self._files:
+            f.set_io_tactic(self._iotactic)
             f.overwrite()
 
 
@@ -408,14 +411,14 @@ class NfvFile:
             raise Exception("Given property name not found")
 
 
-    def set_io_tactic(io_tactic=None):
+    def set_io_tactic(self, tactic=None):
         """ set the tactic for file I/O manipulations
         :param io_tactic : NfvIoTactic object
         :return          : *none*
         """
-        if io_tactic is None:
+        if tactic is None:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
-        self._iotactic = io_tactic
+        self._iotactic = tactic
 
 
     def truncate(self, size=None):   
@@ -539,6 +542,7 @@ class NfvIoTactic:
     """ 
     __slots__ = ('_iosize', '_datapattern', '_seek', '_property', '_data', '_datacheck')
     _seeks = ('seq', 'random', 'reverse')
+    _patterns = ('fixed', 'random')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
     def __init__(self, io_size='8k', data_pattern='fixed', seek_type='seq', data_check=True):
@@ -550,7 +554,9 @@ class NfvIoTactic:
         :return             : NfvIoTactic object
         """
         if seek_type not in self._seeks:
-            raise ValueError("ERROR: Given seek type %s is invalid!" % seek_type)
+            raise ValueError("ERROR: Given seek_type %s is invalid!" % seek_type)
+        if data_pattern not in self._patterns:
+            raise ValueError("ERROR: Given data_pattern %s is invalid!" % data_pattern)
 
         self._iosize = convert_size(io_size)
         self._datapattern = data_pattern
@@ -611,6 +617,8 @@ class NfvIoTactic:
         if self._datapattern == 'random':
             self.random_pattern()
         elif self._datapattern == 'fixed':
+            # every time it'll renew a fixed data
+            # this should be a place needs to be enhanced
             self.fixed_pattern()
 
         return self._data

@@ -12,9 +12,14 @@ def deploy_tree():
     # NfvPolicy
     # NfvIoMocker
     mytree = NfvTree(tree_root='/mnt/nfv/testshare/numbertest', tree_width=2, tree_depth=2)
-    iotactic = NfvIoTactic(io_size='8k', data_pattern='random', seek_type='reverse', data_check=True)
+    mytree.wipe()
+    mytree = NfvTree(tree_root='/mnt/nfv/testshare/numbertest', tree_width=1, tree_depth=1)
+    iotactic = NfvIoTactic(io_size='8k', data_pattern='fixed', seek_type='reverse', data_check=True)
+    mytree.set_io_tactic(iotactic)
+    mytree.tailor(file_number=5, file_size='1M')
     print(iotactic.get_property())
-    #pdb.set_trace()
+    for f in mytree:
+        print("checksum: %s" % f.get_property('checksum'))
     updateattrs = {
             'io_size'      : '2k',
             'data_pattern' : 'random',
@@ -22,10 +27,15 @@ def deploy_tree():
     }
     iotactic.set_property(attrs=updateattrs)
     print(iotactic.get_property())
-    mytree.set_io_tactic(iotactic)
-    mytree.tailor(number=40, file_size='10M')
-    print("affter tailor 1: %d" % mytree.get_property('file_number'))
-    print("total size of tree: %d" % mytree.get_property('tree_size'))
+    mytree.overwrite()
+    print("affter tailor 5: %d" % mytree.get_property('file_number'))
+    for f in mytree:
+        print("checksum: %s" % f.get_property('checksum'))
+    """
+    print("Before: %s" % mytree.get_property(name='tree_size'))
+    mytree.truncate(file_size='10M')
+    print("After: %s" % mytree.get_property(name='tree_size'))
+    """
 
     # mytree.wipe()
 

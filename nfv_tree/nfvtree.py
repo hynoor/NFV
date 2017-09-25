@@ -1,9 +1,13 @@
+""" nfvtree.py implemented fundamental data structures of file tree, file and I/O tactic
+"""
+
 import os
 import sys
 import pdb
 import re
 
 from shutil import rmtree
+from hashlib import md5
 from random import randint, shuffle
 from os import path, makedirs, listdir, walk
 from os.path import exists, join, getsize
@@ -113,6 +117,8 @@ class NfvTree:
             for dirname in dirs:
                 self._dirs.add(join(dirpath, dirname))
 
+        self.update()
+
 
     def set_io_tactic(self, tactic=None):
         """ set io tactic for the file tree
@@ -173,13 +179,69 @@ class NfvTree:
         :param file_size   : size of file which to be added
         :retrun            : *none*
         """
-        deltanum = abs(number - len(self._files))
-        if number > len(self._files):
+        deltanum = abs(file_number - len(self._files))
+        if file_number > len(self._files):
             self.create_file(number=deltanum, size=file_size)
-        if number < len(self._files):
+        if file_number < len(self._files):
             self.remove_file(number=deltanum)
 
         self.update()
+
+
+    def truncate(self, file_size=None):   
+        """ truncate the on-disk file tree to specific size
+        :param file_size : size of each file to be truncated to
+        :return          : *none*
+        """
+        if file_size is None:
+            pass
+        else:
+            file_size = convert_size(file_size)
+
+        for f in self._files:
+            f.truncate(file_size)
+        
+        self.update()
+
+
+    def append(self, delta=None):
+        """ append the on-disk file tree
+        :param delta : delta size of to be appended
+        :return     : *none*
+        """
+        pass
+
+
+    def copy(self):
+        """ copy the on-disk file tree to another path
+        :param dest_path : destination path the file to be copied to  
+        :return          :  NfvFile object just been copied
+        """
+        pass
+
+
+    def move(self):
+        """ move on-disk file tree to another tree root
+        :param dest_path : destination path the file to be copied to  
+        :return          :  NfvFile object just been removed
+        """
+        pass
+
+
+    def overwrite(self):
+        """ overwrite the on-disk file tree
+        :return  : *none*
+        """
+        for f in self._files:
+            f.overwrite()
+
+
+    def read(self):
+        """ read the data of on-disk file
+        :return  : *none*
+        """
+        for f in self._files:
+            f.read()
 
 
     def wipe(self):
@@ -205,7 +267,7 @@ class NfvTree:
 class NfvFile:
     """ represent a file object
     """
-    __slots__ = ('_path', '_size', '_inode', '_dir', '_name', '_uid', '_iotactic')
+    __slots__ = ('_path', '_size', '_inode', '_dir', '_name', '_checksum', '_uid', '_iotactic')
 
     _io_check_db = defaultdict(lambda : None)
 
@@ -220,6 +282,7 @@ class NfvFile:
             raise ValueError("Error: parameter file_path is required!")
         self._path = path 
         self._size = convert_size(size)
+        self._checksum = None
         self._iotactic = io_tactic
         self._dir, self._name = os.path.split(path)
 
@@ -227,20 +290,23 @@ class NfvFile:
             self.new()
         else:
             self.load_file(path)
-   
 
-    def new(self):
+
+    def new(self, open_mode='create'):
         """ craete a NfvFile on-disk file object
         :return : *none*
         """
         if self._iotactic is None:
             raise ValueError("Error: parameter tactic is required!")
+        openmode = 'w+b' 
+        if open_mode == 'overwrite':
+            openmode = 'rb+'
         numwrite = self._size // self._iotactic.get_property('io_size')
         remainder = self._size % self._iotactic.get_property('io_size')
         indexsupplier = self._iotactic.seek_to(self._size)
         if remainder > 0:
             rindex = next(indexsupplier)
-        with open(self._path, 'w+b') as fh:
+        with open(self._path, openmode) as fh:
             if remainder > 0 and self._iotactic._seek == 'reverse':
                 data = self._iotactic.get_data()
                 if self._iotactic._datacheck:
@@ -295,6 +361,7 @@ class NfvFile:
                 'name'       : self._name,
                 'size'       : self._size,
                 'directory'  : self._dir,
+                'checksum'   : self._checksum,
         }
 
         if name is None:
@@ -324,8 +391,11 @@ class NfvFile:
         if size is None:
             pass
         else:
-            with open(self._path, 'a') as fh:
+            size = convert_size(size)
+            with open(self._path, 'ab') as fh:
                 fh.truncate(size)
+
+        self._size = getsize(self._path) 
 
 
     def append(self, delta=None):
@@ -352,25 +422,51 @@ class NfvFile:
         pass
 
 
-    def overwite(self):
+    def overwrite(self):
         """ overwrite the on-disk file
         :return  :  NfvFile object just been rewrote
         """
-        pass
+        self.new(open_mode='overwrite')
+        # update checksum
+        if self._checksum is not None:
+            self.checksum()
 
 
     def read(self):
         """ read the data of on-disk file
         :return  : *none*
         """
-        pass
+        numread = self._size // self._iotactic._iosize
+        remainder = self._size % self._iotactic._iosize
+
+        indexsupplier = self._iotactic.seek_to(self._size)
+        if remainder > 0:
+            rindex = next(index_supplier) # get index of remainder
+        with open(self._path, 'rb') as fh:
+            if remainder > 0 and self._seek == 'reverse':
+                fh.seek(rindex)
+                fh.read(remainder)
+            for idx in indexsupplier:
+                fh.seek(idx)
+                fh.read(self._iotactic._iosize)
+            if remainder > 0 and (self._seek == 'seq' or self._seek == 'random'):
+                fh.seek(rindex)
+                fh.read(remainder)
 
    
-    def checksum(self):
+    def checksum(self, chunk_size=4096):
         """ checksum the data of on-disk file
         :return  : *none*
         """
-        pass
+        if chunk_size > self._size:
+            chunk_size = self._size
+
+        hashmd5 = md5()
+        with open(self._path, 'rb') as fh:
+            for chunk in iter(lambda : fh.read(chunk_size), b""):
+                hashmd5.update(chunk)
+
+        self._checksum = hashmd5.hexdigest()
 
   
     def remove(self):
@@ -559,5 +655,4 @@ class NfvIoTactic:
                 for idx in slicelist:
                     yield idx * self._iosize
                 slicelist = []
-
 

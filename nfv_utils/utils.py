@@ -110,22 +110,22 @@ def convert_size(raw_size):
         sys.exit("ERROR: Passed size is malformed!")
 
 
-def encipher_string(string=None, store=None):
+def encipher_data(data=None, store=None):
     """ encode the given string to a checksum code, then put it in to store db
     :encipher : target string to be enciphered
     :return   : checksum of given string
     """
-    if string is None:
+    if data is None:
         raise  ValueError("Parameter string is required")
     # using 'sha' result as unique db key to reduce the hosts' memory consumption
     hashmd5 = hashlib.md5()
-    hashmd5.update(string.encode('utf-8'))
-    stringcks = hashmd5.digest()
-    # Start over if the string is already in the Database
+    hashmd5.update(data)
+    datacks = hashmd5.digest()
+    # Start over if the data is already in the Database
     if store:
-        store[stringcks] = True
+        store[datacks] = True
     else:
-        return stringcks
+        return datacks
 
  
 def random_string(length=8, seed=None):

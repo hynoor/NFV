@@ -9,7 +9,7 @@ from os import path, makedirs, listdir, walk
 from os.path import exists, join, getsize
 from collections import namedtuple, defaultdict
 from itertools import cycle
-from nfv_utils.utils import convert_size, random_string, encipher_string
+from nfv_utils.utils import convert_size, random_string, encipher_data
 
 
 
@@ -225,11 +225,11 @@ class NfvFile:
             raise ValueError("Error: parameter tactic is required!")
         numwrite = self._size // self._iotactic.get_property('io_size')
         remainder = self._size % self._iotactic.get_property('io_size')
-        with open(self._path, 'w+') as fh:
+        with open(self._path, 'wb+') as fh:
             while numwrite > 0:
                 data = self._iotactic.get_data()
                 if self._iotactic._datacheck:
-                    NfvFile._io_check_db[encipher_string(data, NfvFile._io_check_db)] = True
+                    NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.write(data)
                 numwrite -= 1
             fh.write(data[:remainder])
@@ -242,7 +242,7 @@ class NfvFile:
         do not use it directly on a NfvFile object
         """
         with open(self._path, 'rb') as fh:
-            if not NfvFile._io_check_db[encipher_string(str(fh.read(self._iotactic._iosize)))]:
+            if not NfvFile._io_check_db[encipher_data(fh.read(self._iotactic._iosize))]:
                 print('database dump: %s' % NfvFile._io_check_db)
                 raise Exception("ERROR: data check failed!")
 
@@ -415,16 +415,16 @@ class NfvIoTactic:
     def fixed_pattern(self, pattern=None):
         """ fixed pattern
         """
-        tmpstr = "This is a string used for NFV testing"
+        tmpbytes = bytes('This is a string used for NFV testing', encoding='utf_8')
         if pattern is not None:
-            tmpstr = pattern
+            tmpbytes = bytes(pattern, encoding='utf_8')
 
-        if len(tmpstr) >= self._iosize:
-            self._data = tmpstr[:self._iosize]
+        if len(tmpbytes) >= self._iosize:
+            self._data = tmpbytes[:self._iosize]
         else:
-            number = self._iosize // len(tmpstr)  
-            remainder = tmpstr[:self._iosize % len(tmpstr)]
-            self._data = tmpstr * number + remainder 
+            number = self._iosize // len(tmpbytes)  
+            remainder = tmpbytes[:self._iosize % len(tmpbytes)]
+            self._data = tmpbytes * number + remainder 
 
 
     @staticmethod
@@ -437,16 +437,17 @@ class NfvIoTactic:
         offset = randint(0,bufsize)
         bufend = bufsize - 1
         ret = ''
+        pdb.set_trace()
         while size>0:
             if (size > bufsize):
                 buf = buffer[offset:bufend]
-                ret+= str(buf)
+                ret+= buf
                 size-= len(buf)
                 offset = 0
             else:
                 start = randint(0,bufsize-size)
                 buf = buffer[start:start+size]
-                ret += str(buf)
+                ret += buf
                 size-= len(buf)
         return ret
 

@@ -19,7 +19,12 @@ from nfv_utils.utils import convert_size, random_string, encipher_data
 
 
 class NfvTree:
-    """ Represent a file tree
+    """ Defines a tree structure like data structure and related methods
+
+    NfvTree is a file tree which composed of directories and files
+    directories within NfvTree are orgnized by with and depth which 
+    represent how many sub folders in a sub-directory and what's the 
+    depth of the sub-directories
     """
     __slots__ = (
             '_root',
@@ -36,6 +41,12 @@ class NfvTree:
 
     def __init__(self, tree_root=None, tree_width=1, tree_depth=1, dir_length=8):
         """ Constructor for instaniating a empty file tree
+
+        Each NfvTree object should have a set of attributes as below,
+        for any I/O related operations, a NfvIoTactic object is required
+        for regulates the specific I/O strategy, such as data_pattern,
+        seek type etc.
+ 
         :param tree_root  : root directory of file tree
         :param tree_width : the width of file tree
         :param tree_depth : the depth of file tree
@@ -61,6 +72,9 @@ class NfvTree:
 
     def new(self, dir=None, tree_width=1, tree_depth=1):
         """ initialize a tree object
+        
+        this function will be called for creating a new file tree
+
         :param tree_width : the width of file tree
         :param tree_depth : the depth of file tree
         """
@@ -78,7 +92,9 @@ class NfvTree:
 
 
     def update(self):
-        """ recalculate the total size of tree
+        """ update some fundamental attributes of file tree
+        
+        So far, only _treesize will be re-calcualted 
         """      
         self._treesize = 0
         for f in self._files:
@@ -87,6 +103,8 @@ class NfvTree:
 
     def create_file(self, size='8K', number=1, io_tactic=None):
         """ create file(s) with given io tactic 
+        
+        This method will create new on-disk file with user given tactic
         """
         if io_tactic is None and self._iotactic is None: 
             raise ValueError("ERROR: need io_tactic specific before any I/O operation!")
@@ -103,6 +121,10 @@ class NfvTree:
 
     def load_tree(self, tree_root=None):
         """ load an existing on-disk file tree into memory
+
+        If given tree_root exists already, load the which
+        into memory instead of creating new one
+
         :param tree_root : root path of file tree
         :return          : NfvTree object
         """
@@ -116,11 +138,19 @@ class NfvTree:
             for dirname in dirs:
                 self._dirs.add(join(dirpath, dirname))
 
+        # initialize io tactic
+        for f in self._files:
+            f.set_tactic(self._iotactic)
+
         self.update()
 
 
-    def set_io_tactic(self, tactic=None):
+    def set_tactic(self, tactic=None):
         """ set io tactic for the file tree
+
+        attach a NfvIoTactic object to current file tree,
+        which could leverage the tactic to do I/O operation
+
         :param tactic : NfvIoTactic object
         :return       : *none*
         """
@@ -129,28 +159,32 @@ class NfvTree:
         self._iotactic = tactic
         
     
-    def remove_file(self, file=None, number=1):
+    def remove_file(self, number=1):
         """ remove files from tree randomly
-        :param file   : NfvFile object
+        
+        Remove user specified number of files within  file tree,
+        all files chosen by random
+
         :param number : number of file to be removed
+        :param file   : NfvFile object
         :return       : *none*
         """
-        if file is not None and file in self._files:
-            self._files(path)
-        else:
-            for f in range(number):
-                try: 
-                    self._files.pop().remove()
-                except Exception as e:
-                    if re.search('pop from an empty set', str(e)):
-                        pass
-                    else:
-                        raise Exception(e)
+        for f in range(number):
+            try: 
+                self._files.pop().remove()
+            except Exception as e:
+                if re.search('pop from an empty set', str(e)):
+                    pass
+                else:
+                    raise Exception(e)
         self.update()
 
 
     def get_property(self, name=None):
         """ get the value of given property
+
+        Retrieves the attribute value which name given by user
+
         :param name : name of property to be retrieved
         :return     : value of given parameter name, if param name was not given, 
                     : all properties will be returned
@@ -174,6 +208,12 @@ class NfvTree:
 
     def tailor(self, file_number=None, file_size='8k'):
         """ tailor the total number of files within file tree
+
+        Expand or shrink the number of files within file tree
+        to given value, if given file_number is larger than existing,
+        all extra file will be created accroding to given file_size
+        and attached NfvIoTactic object
+
         :param file_number : number of files to be tailord to
         :param file_size   : size of file which to be added
         :retrun            : *none*
@@ -189,6 +229,7 @@ class NfvTree:
 
     def truncate(self, file_size=None):   
         """ truncate the on-disk file tree to specific size
+
         :param file_size : size of each file to be truncated to
         :return          : *none*
         """
@@ -205,27 +246,51 @@ class NfvTree:
 
     def append(self, delta=None):
         """ append the on-disk file tree
+
+        Append the file with data, which regulated by attach NfvIoTactic object
+
         :param delta : delta size of to be appended
         :return     : *none*
         """
         pass
 
 
-    def copy(self):
-        """ copy the on-disk file tree to another path
-        :param dest_path : destination path the file to be copied to  
-        :return          :  NfvFile object just been copied
+    def copy(self, dest_tree=None, name_length=8, name_seed=None):
+        """ copy the on-disk files within tree to another path
+
+        :param dest_tree : destination path the file to be copied to,
+                           which will be auto created if doesn't exist.
+                           if dest_tree is None, all files will be copied within
+                           the file tree itself.
+        :return          : a copied NfvTree object or self with copied within self
         """
-        tmpset = set()
-        for f in self._files:
-            tmpset.add(f.copy())
-        self._files = self._files.union(tmpset)
-        
-        self.update()
+        if dest_tree is None:
+            dest_tree = self._root
+            tmpset = set()
+            for f in self._files:
+                tmpset.add(f.copy(name_length=name_length, name_seed=name_seed))
+            self._files = self._files.union(tmpset) 
+            self.update()
+            return self
+        else:
+            makedirs(dest_tree)
+            for d in self._dirs:
+                dstdir = d.replace(self._root, dest_tree)
+                if not exists(dstdir):
+                    makedirs(dstdir)
+            desttree = NfvTree(tree_root=dest_tree)
+            desttree._iotactic = self._iotactic
+            for f in self._files:
+                destpath = f._path.replace(self._root, dest_tree)
+                desttree._files.add(f.copy(destpath))
+
+            self.update()
+            return  desttree
 
 
     def rename(self, name_seed=None, name_length=8):
         """ rename all on-disk file within file tree
+
         :param name_length : destination 
         :return          :  NfvFile object just been removed
         """
@@ -238,6 +303,7 @@ class NfvTree:
 
     def checksum(self):
         """ checksum all the on-disk files within file tree
+
         :return  : *none*
         """
         for f in self._files:
@@ -246,18 +312,20 @@ class NfvTree:
 
     def overwrite(self):
         """ overwrite the on-disk file tree
+
         :return  : *none*
         """
         if self._iotactic is None:
             raise ValueError("Error: parameter tactic is required!")
         
         for f in self._files:
-            f.set_io_tactic(self._iotactic)
+            f.set_tactic(self._iotactic)
             f.overwrite()
 
 
     def read(self):
         """ read the data of on-disk file
+
         :return  : *none*
         """
         for f in self._files:
@@ -266,6 +334,7 @@ class NfvTree:
 
     def clear_file(self):
         """ clear all on-disk files within tree
+
         :return  : *none*
         """
         try:
@@ -281,6 +350,7 @@ class NfvTree:
 
     def wipe(self):
         """ wipe the entire tree and including its containing files
+
         """        
         # clear files
         for f in self._files:
@@ -293,6 +363,9 @@ class NfvTree:
 
     def __iter__(self):
         """ iterator implemention
+
+        when caller iterates the NfvTree object, which will yield 
+        the containing file object randomly 
         """
         for f in self._files:
             yield f
@@ -411,7 +484,7 @@ class NfvFile:
             raise Exception("Given property name not found")
 
 
-    def set_io_tactic(self, tactic=None):
+    def set_tactic(self, tactic=None):
         """ set the tactic for file I/O manipulations
         :param io_tactic : NfvIoTactic object
         :return          : *none*
@@ -436,15 +509,7 @@ class NfvFile:
         self._size = getsize(self._path) 
 
 
-    def append(self, delta=None):
-        """ append the on-disk file to specific size with specific tactic
-        :param delta : delta size of to be appended
-        :return     : *none*
-        """
-        pass
-
-
-    def copy(self, dest_path=None):
+    def copy(self, dest_path=None, name_length=8, name_seed=None):
         """ copy the on-disk file to another path
         :param dest_path : destination path the file to be copied to, if it's not 
                            provided, use current dir as destination  folder
@@ -454,9 +519,8 @@ class NfvFile:
             dest_path = join(self._dir, random_string(8))
         try:
             cfile = copy.deepcopy(self)
-            cfile._path = dest_path
-            cfile.new()
-           
+            copyfile(self._path, dest_path)
+            cfile = NfvFile(dest_path)
         except Exception as e:
             raise Exception(e)
            

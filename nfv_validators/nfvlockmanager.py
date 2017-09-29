@@ -20,9 +20,24 @@ elif os.name == 'nt':
 
 # NFV modules
 from os.path import isfile, exists, getsize
-from nfv_utils.utils import convert_size
-from nfv_tree.nfvtree import NfvFile
+from nfv_tree.utils import convert_size
+from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
+
+
+""" This module implements 2 primary class to manipulating file locks
+:class NfvLockManager : manage file locks
+:class NfvLock        : file lock
+"""
+
+# lock modules
+if os.name == 'posix':
+    import fcntl
+    import struct
+elif os.name == 'nt':
+    import msvcrt
+
+# NFV modules
 
 
 class NfvLockManager:
@@ -30,7 +45,7 @@ class NfvLockManager:
     Support manipulating both NFS and CIFS locks
     """
 
-    def __init__(self, file_path=None, locks=[]):
+    def __init__(self, file=None, locks=[]):
         """ init
         initialize the object variables
         :param  locks  : a list stores NfvLock object 
@@ -40,8 +55,11 @@ class NfvLockManager:
         self._repository = set(locks)
         self._isattached = False
 
-        if file_path:
-            self._fp = file_path
+        if type(file) is NfvFile:
+            self._fp = file.get_property('path')
+            self._fh = open(self._fp, 'r+b') 
+        elif file is not None:
+            self._fp = file
             self._fh = open(self._fp, 'r+b') 
 
 
@@ -89,9 +107,9 @@ class NfvLockManager:
         if type(file) is not NfvFile:
             raise Exception("Passed file is not a NfvFile object")
 
-        if file.get_property(name = path) is not None:
-            self._fh = open(file_path)
-            self._fp = file_path
+        if file.get_property(name = 'path') is not None:
+            self._fp = file.get_property(name='path')
+            self._fh = open(self._fp)
 
         for lock in list(self._repository):
             lock.attach(self._fh)
@@ -474,5 +492,4 @@ class NfvLock:
                 rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
         except Exception as e:
             raise Exception(e)
-
 

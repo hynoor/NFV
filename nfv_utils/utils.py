@@ -173,3 +173,51 @@ def random_string(length=8, seed=None):
         randomstring += chars[offset]
 
     return randomstring
+
+
+def string_to_list(string=None):
+    """ examine passed string to list
+
+    :param string  : string to be converted
+    :return values : a list stores the result
+    """
+    global grandomace
+    targetstr = string
+    head = None
+    rear = None
+    hindex = None
+    rindex = None
+    finalres = []
+    rawres = targetstr.split(',')
+    for r in rawres:
+        m = re.search('^.*(-|~){1}.*$', r)
+        if m is not None:
+            if m.group(1) == '-':
+                fineres = r.split('-')
+            elif m.group(1) == '~':
+                fineres = r.split('~')
+                grandomace = True
+            else:
+                sys.exit("Error: Invalid name format passed!")
+            if len(fineres) == 2:
+                m = re.search('^\s*(\S*\D)(0*)(\d+)$', fineres[0])
+                head = m.group(1)
+                hmedium = m.group(2)
+                hindex = m.group(3)
+                m = re.search('^\s*(\S*\D)(0*)(\d+)$', fineres[1])
+                rear = m.group(1)
+                rmedium = m.group(2)
+                rindex = m.group(3)
+                if head != rear:
+                    raise ValueError("Invalid format passed!")
+                else:
+                    for i in range(int(hindex), int(rindex) + 1):
+                        digits = len(str(i)) - len(hindex)
+                        finalres.append(head + '0' * (len(hmedium)-digits) + str(i))
+            elif len(fineres) == 1:
+                finalres.append(fineres[0])
+            else:
+                sys.exit("Error: Invalid name format passed!")
+        else:
+            finalres.append(r)
+    return finalres

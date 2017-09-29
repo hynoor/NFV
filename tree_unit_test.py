@@ -1,15 +1,36 @@
 from nfv_tree.nfvtree import NfvTree, NfvFile
 from nfv_utils.utils import random_string
 import pdb
+import time
 
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
+from nfv_tree.nfvlockmanager import NfvLockManager, NfvLock
 
+def ads_demo():
+    """ ADS demoe test
+    """
+
+    mytree = NfvTree("E:\\nnn")
+    mytree.tailor(file_number=5)
+    mgrs = []
+    for f in mytree:
+        lockmgr = NfvLockManager()
+        for i in range(10):
+            lockmgr.create_lock()
+        lockmgr.attach(f)
+    
+    for m in mgrs:
+        for l in m:
+            l.on()
+
+    time.sleep(1000)
+        
 
 def deploy_tree():
     """  deploy a file tree
     """
     # NfvTree
-    # NfvPolicy
+    # NfvPolic 
     # NfvIoMocker
     """
     mytree = NfvTree(tree_root='/mnt/nfv/testshare/numbertest', tree_width=2, tree_depth=2)
@@ -38,4 +59,5 @@ def deploy_tree():
     mytree.overwrite()
 
 if __name__ == '__main__':
-    deploy_tree()
+    #deploy_tree()
+    ads_demo()

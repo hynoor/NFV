@@ -7,14 +7,17 @@ import pdb
 import re
 import copy
 
+sys.path.insert(0, './nfv_tree')
+
 from shutil import copyfile, move, rmtree
 from hashlib import md5
 from random import randint, shuffle
-from os import path, makedirs, listdir, walk
-from os.path import exists, join, getsize
+from os import path, makedirs, listdir, walk, remove
+from os.path import isfile, exists, getsize, exists, join, getsize, split
 from collections import namedtuple, defaultdict
 from itertools import cycle
-from nfv_utils.utils import convert_size, random_string, encipher_data
+from utils import convert_size, random_string, encipher_data, string_to_list
+from nfvlockmanager import NfvLockManager, NfvLock
 
 
 
@@ -157,7 +160,8 @@ class NfvTree:
         if type(tactic) is not NfvIoTactic:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
         self._iotactic = tactic
-        
+        for f in self._files:
+            f.set_tactic(tactic)
     
     def remove_file(self, number=1):
         """ remove files from tree randomly
@@ -375,12 +379,25 @@ class NfvTree:
 class NfvFile:
     """ represent a file object
     """
-    __slots__ = ('_path', '_size', '_inode', '_dir', '_name', '_checksum', '_uid', '_iotactic')
+    __slots__ = (
+            '_path', 
+            '_size', 
+            '_inode', 
+            '_dir', 
+            '_name', 
+            '_checksum', 
+            '_uid', 
+            '_iotactic', 
+            '_adsstreams',
+            '_lockmgr',
+            '_locks',
+    )
 
     _io_check_db = defaultdict(lambda : None)
 
     def __init__(self, path=None, size='8k', io_tactic=None):
         """ initialize a NfvFile object
+
         :param path      : path of the on-disk file to be initialized
         :param size      : size of the file to be initialized (when creates a new file)
         :param io_tactic : NfvIoTactic object to be used for I/O operation
@@ -393,6 +410,8 @@ class NfvFile:
         self._checksum = None
         self._iotactic = io_tactic
         self._dir, self._name = os.path.split(path)
+        self._adsstreams = {} 
+        self._locks = set()
 
         if not exists(path):
             self.new()
@@ -600,6 +619,68 @@ class NfvFile:
         del self
 
 
+    # ADS
+    def create_ads(self, streams=None, size='8k'):
+        """ create one or more ads stream
+
+        :param streams : the name of ads streams to be created
+        :param size    : the size of streams to be created
+        :return        : *none*
+        """
+
+        if streams is None:
+            raise ValueError("ERROR: parameter streams is required")
+        streamlist = string_to_list(streams)
+        for s in streamlist:
+            stream = NfvAdsStream(path=self._path + ":" + s, size=size, io_tactic=self._iotactic)
+            self._adsstreams[s] = stream
+
+
+    def overwrite_ads(self, streams=None, size='8k'):
+        """ overwrite ads streams
+
+        :param streams : the name of ads streams to be overwrote
+        :param size    : the size of streams to be created
+        :return        : *none*
+        """
+
+        if streams is None:
+            raise ValueError("ERROR: parameter streams is required")
+
+        streamlist = string_to_list(streams)
+        for n, o in self._adsstreams.items():
+            if n in streamlist:
+                o.overwrite() 
+        
+            
+    def remove_ads(self, streams=None):
+        """ overwrite ads streams
+
+        :param streams : the name of ads streams to be overwrote, it will remove
+                         all streams object if not specified
+        :return        : *none*
+        """
+        if streams is None:
+            if len(self._adsstreams) > 0:
+                for s in self._adstreams:
+                    s.remove()
+            else:
+                raise ValueError("ERROR: parameter streams should be specified")
+        else:
+            #pdb.set_trace()
+            streamnames = string_to_list(streams)
+            for sn in streamnames:
+                try:
+                    if sn in self._adsstreams.keys():
+                        self._adsstreams[sn].remove()
+                        del self._adsstreams[sn]
+                    else:
+                        remove(self._path + ":" + sn)
+                except IOError as e:
+                    print("stream %s not found" % sn)
+                    pass 
+       
+
 class NfvIoTactic:
     """ Nfv I/O Tactic 
     the class defines the tactic of I/O
@@ -778,4 +859,33 @@ class NfvIoTactic:
                 for idx in slicelist:
                     yield idx * self._iosize
                 slicelist = []
+
+
+class NfvAdsStream(NfvFile):
+    """ Alternate Data Stream 
+
+    For those CIFS/NTFS file(s), there s alternate data stream can be
+    manipulated other than regular unnamed stream, one file could attched
+    more ADS streams
+    """
+
+    pass
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 

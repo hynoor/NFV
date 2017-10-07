@@ -7,8 +7,6 @@ import pdb
 import re
 import copy
 
-sys.path.insert(0, './nfv_tree')
-
 from shutil import copyfile, move, rmtree
 from hashlib import md5
 from random import randint, shuffle
@@ -16,8 +14,7 @@ from os import path, makedirs, listdir, walk, remove
 from os.path import isfile, exists, getsize, exists, join, getsize, split
 from collections import namedtuple, defaultdict
 from itertools import cycle
-from utils import convert_size, random_string, encipher_data, string_to_list
-from nfvlockmanager import NfvLockManager, NfvLock
+from .utils import convert_size, random_string, encipher_data, string_to_list
 
 
 

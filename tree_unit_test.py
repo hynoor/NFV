@@ -1,28 +1,29 @@
-from nfv_tree.nfvtree import NfvTree, NfvFile
+from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
+from nfv_tree.nfvlockmanager import NfvLockManager, NfvLock
 from nfv_utils.utils import random_string
 import pdb
 import time
 
-from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
-from nfv_tree.nfvlockmanager import NfvLockManager, NfvLock
 
 def ads_demo():
     """ ADS demoe test
     """
 
-    mytree = NfvTree("E:\\nnn")
-    mytree.tailor(file_number=5)
+    mytree = NfvTree("E:\\fixed")
+    mytree.tailor(file_number=2)
     mgrs = []
     for f in mytree:
         lockmgr = NfvLockManager()
-        for i in range(10):
-            lockmgr.create_lock()
         lockmgr.attach(f)
-    
+        lockproducer = lockmgr.create_lock()
+        for i, lock in zip(range(100), lockproducer):
+            mylock = lockproducer
+        mgrs.append(lockmgr)
+
     for m in mgrs:
         for l in m:
             l.on()
-
+    print("start to wait")
     time.sleep(1000)
         
 

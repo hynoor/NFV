@@ -228,19 +228,19 @@ class NfvTree:
         self.update()
 
 
-    def truncate(self, file_size=None):   
+    def truncate(self, target_size=None):   
         """ truncate the on-disk file tree to specific size
 
-        :param file_size : size of each file to be truncated to
-        :return          : *none*
+        :param target_size : size of each file to be truncated to
+        :return            : *none*
         """
-        if file_size is None:
+        if target_size is None:
             pass
         else:
-            file_size = convert_size(file_size)
+            target_size = convert_size(target_size)
 
         for f in self._files:
-            f.truncate(file_size)
+            f.truncate(target_size)
         
         self.update()
 
@@ -326,6 +326,9 @@ class NfvTree:
 
     def read(self):
         """ read the data of on-disk file
+
+        read all files within file tree with io_size 
+        and seek type specified in io tactic object
 
         :return  : *none*
         """
@@ -472,6 +475,7 @@ class NfvFile:
 
     def load_file(self, path):
         """ load an existing on-disk file and initialize a NfvFile object
+
         :param path : path of the on-disk file
         :return     : *none*
         """
@@ -481,6 +485,7 @@ class NfvFile:
   
     def get_property(self, name=None):
         """ get the value of given property
+
         :param name : name of property to be retrieved
         :return     : value of given parameter name, if param name was not given, return all properies
         """
@@ -502,6 +507,7 @@ class NfvFile:
 
     def set_tactic(self, tactic=None):
         """ set the tactic for file I/O manipulations
+
         :param io_tactic : NfvIoTactic object
         :return          : *none*
         """
@@ -512,6 +518,7 @@ class NfvFile:
 
     def truncate(self, size=None):   
         """ truncate the on-disk to specific size
+
         :param size : size to be truncated to
         :return     : *none*
         """
@@ -527,6 +534,7 @@ class NfvFile:
 
     def copy(self, dest_path=None, name_length=8, name_seed=None):
         """ copy the on-disk file to another path
+
         :param dest_path : destination path the file to be copied to, if it's not 
                            provided, use current dir as destination  folder
         :return          : NfvFile object just been copied
@@ -545,6 +553,7 @@ class NfvFile:
 
     def rename(self, name_length=8, name_seed=None):
         """ move on-disk file to another path
+
         :param name_seed   : seed for constitution a file name
         :param name_length : length of new file name
         :return            : *none*
@@ -559,6 +568,7 @@ class NfvFile:
 
     def overwrite(self):
         """ overwrite the on-disk file
+
         :return  :  NfvFile object just been rewrote
         """
         self.new(open_mode='overwrite')
@@ -569,6 +579,7 @@ class NfvFile:
 
     def read(self):
         """ read the data of on-disk file
+
         :return  : *none*
         """
         numread = self._size // self._iotactic._iosize
@@ -578,20 +589,23 @@ class NfvFile:
         if remainder > 0:
             rindex = next(index_supplier) # get index of remainder
         with open(self._path, 'rb') as fh:
-            if remainder > 0 and self._seek == 'reverse':
+            if remainder > 0 and self._iotactic.get_property('seek-type') == 'reverse':
                 fh.seek(rindex)
                 fh.read(remainder)
             for idx in indexsupplier:
                 fh.seek(idx)
                 fh.read(self._iotactic._iosize)
-            if remainder > 0 and (self._seek == 'seq' or self._seek == 'random'):
+            if remainder > 0 and (self._iotactic.get_property('seek-type') == 'seq'\
+                    or self._iotactic.get_property('seek-type') == 'random'):
                 fh.seek(rindex)
                 fh.read(remainder)
 
    
     def checksum(self, chunk_size=4096):
         """ checksum the data of on-disk file
-        :return  : *none*
+        
+        :param chunck_size : size of each chunck to be read for md5
+        :return            : *none*
         """
         if chunk_size > self._size:
             chunk_size = self._size
@@ -606,6 +620,7 @@ class NfvFile:
   
     def remove(self):
         """ remove the ondisk file
+
         :return  : *none*
         """
         try: 
@@ -664,7 +679,6 @@ class NfvFile:
             else:
                 raise ValueError("ERROR: parameter streams should be specified")
         else:
-            #pdb.set_trace()
             streamnames = string_to_list(streams)
             for sn in streamnames:
                 try:
@@ -682,17 +696,27 @@ class NfvIoTactic:
     """ Nfv I/O Tactic 
     the class defines the tactic of I/O
     """ 
-    __slots__ = ('_iosize', '_datapattern', '_seek', '_property', '_data', '_datacheck')
+    __slots__ = (
+            '_iosize', 
+            '_datapattern', 
+            '_seek', 
+            '_property', 
+            '_data', 
+            '_datacheck'
+    )
+
     _seeks = ('seq', 'random', 'reverse')
     _patterns = ('fixed', 'random')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
     def __init__(self, io_size='8k', data_pattern='fixed', seek_type='seq', data_check=True):
         """ NfvIoTactic constructor
+
         :param io_size      : io size of tactic to be adopted
         :param data_pattern : data pattern of io tactic to be adopted
         :param seek_type    : seek type of tactic to be adopted
-        :param data_check   : a bool flag indicates if perform immediate data check on each file
+        :param data_check   : a bool flag indicates if perform 
+                              immediate data check on each file
         :return             : NfvIoTactic object
         """
         if seek_type not in self._seeks:
@@ -859,30 +883,13 @@ class NfvIoTactic:
 
 
 class NfvAdsStream(NfvFile):
-    """ Alternate Data Stream 
-
-    For those CIFS/NTFS file(s), there s alternate data stream can be
-    manipulated other than regular unnamed stream, one file could attched
-    more ADS streams
+    """ Alternate Data Stream class
+    
+    inherited from NfvFile class, which is substantially 
+    the same as NfvAdsStream class, for those CIFS/NTFS file(s), 
+    there s alternate data stream can be manipulated other than 
+    regular unnamed stream, one file could attched more ADS streams
     """
 
     pass
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-

@@ -1,6 +1,5 @@
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 from nfv_tree.nfvlockmanager import NfvLockManager, NfvLock
-from nfv_utils.utils import random_string
 import pdb
 import time
 

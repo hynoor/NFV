@@ -46,6 +46,7 @@ def create_10_lock_on_single_file():
         lck.off()
         print("lock %s was turned off" % lck.get_property('id'))
 
+    # remove all NfvLock objects
     lckmgr.wipe_lock()
 
 

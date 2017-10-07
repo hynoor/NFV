@@ -10,6 +10,19 @@ NOTEs:
 - NfvFile object(s) can deployed into a NfvTree object
 - NfvIoTactic object is required beofore any I/O manipulation
 - NfvAdsStream object nested in NfvFile object, it can not exist independently
+
+Layout of demo file tree:
+
+                    tree_root
+                        |
+           ------------4dwszki(dir)--------------------------------------------------
+           |                        |                   |                            |
+--------xyuse34(dir)-----           --t4fk2s(dir)---    ------45dwwf(dir)-----     5dfeu7f    
+|      |            |               |         |    |                 |
+4tdre erk3d  ---df9jd(dir)---     dr3nmv   6yqsa uy98jv            bdw54(dir)
+             |              |                                        |
+           xwetj4      87deeu                                     zakdj98
+
 """
 
 # stardand modules

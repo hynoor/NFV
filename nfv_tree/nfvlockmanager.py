@@ -3,11 +3,29 @@
 :class NfvLockManager : a data structure represent managing bunch of file locks
 :class NfvLock        : a data structure represent a file lock
 
-NOTEs:
+Notes:
 - One NfvLockManger object can attach one file obejct only
 - One NfvLockManger object can manage multiple NfvLock obejcts
 - One NfvLock object can attach one NfvFile Object only 
 
+Layout:
+--- NfvLockManger Object 1  ---attach---> |testfile1.txt|
+        |--> NfvLocks object 1
+        |--> NfvLocks object 2
+        |--> NfvLocks object ... 
+        |--> NfvLocks object (n-1)
+--- NfvLockManger Object 2  ---attach---> |testfile2.txt|
+        |--> NfvLocks object 1
+        |--> NfvLocks object 2
+        |--> NfvLocks object ... 
+        |--> NfvLocks object (n-1)
+...
+
+--- NfvLockManger Object n-1 ---attach---> |testfile(n-1).txt|
+        |--> NfvLocks object 1
+        |--> NfvLocks object 2
+        |--> NfvLocks object ... 
+        |--> NfvLocks object (n-1)
 """
 
 # standard modules

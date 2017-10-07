@@ -1,8 +1,8 @@
 """ nfvtree.py implemented fundamental data structures of file tree, file and I/O tactic
 
-:class NfvTree      : a data structure represent a file tree
-:class NfvLock      : a data structure represent a file  
-:class NfvAdsStream : a data structure represent a Alternate Data Stream
+:class NfvTree      : a data structure represents a file tree
+:class NfvLock      : a data structure represents a file  
+:class NfvAdsStream : a data structure represents a Alternate Data Stream
 :class NfvIoTactic  : a class defines I/O charactors, such as data_pattern, seek_type etc.
 
 NOTEs:
@@ -16,8 +16,8 @@ Layout of demo file tree:
                     tree_root
                         |
            ------------4dwszki(dir)--------------------------------------------------
-           |                        |                   |                            |
---------xyuse34(dir)-----           --t4fk2s(dir)---    ------45dwwf(dir)-----     5dfeu7f    
+           |                        |                   |                           |
+--------xyuse34(dir)-----           --t4fk2s(dir)---    ------45dwwf(dir)-----   5dfeu7f    
 |      |            |               |         |    |                 |
 4tdre erk3d  ---df9jd(dir)---     dr3nmv   6yqsa uy98jv            bdw54(dir)
              |              |                                        |
@@ -39,7 +39,7 @@ from os import path, makedirs, listdir, walk, remove
 from os.path import isfile, exists, getsize, exists, join, getsize, split
 from collections import namedtuple, defaultdict
 from itertools import cycle
-from .utils import convert_size, random_string, encipher_data, string_to_list
+from utils import convert_size, random_string, encipher_data, string_to_list
 
 
 

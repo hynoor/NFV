@@ -46,7 +46,7 @@ elif os.name == 'nt':
     import msvcrt
 
 # NFV modules
-from .nfvtree import NfvTree, NfvFile, NfvIoTactic
+from nfvtree import NfvTree, NfvFile, NfvIoTactic
 if os.name == 'posix':
     import fcntl
     import struct

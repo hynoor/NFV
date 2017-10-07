@@ -1,6 +1,18 @@
 """ nfvtree.py implemented fundamental data structures of file tree, file and I/O tactic
+
+:class NfvTree      : a data structure represent a file tree
+:class NfvLock      : a data structure represent a file  
+:class NfvAdsStream : a data structure represent a Alternate Data Stream
+:class NfvIoTactic  : a class defines I/O charactors, such as data_pattern, seek_type etc.
+
+NOTEs:
+- newly initialized NfvTree object doesn't have any NfvFile object
+- NfvFile object(s) can deployed into a NfvTree object
+- NfvIoTactic object is required beofore any I/O manipulation
+- NfvAdsStream object nested in NfvFile object, it can not exist independently
 """
 
+# stardand modules
 import os
 import sys
 import pdb

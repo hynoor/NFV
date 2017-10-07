@@ -1,7 +1,7 @@
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
 def create_tree():
-    """ create a file tree with 3 width and 3 depth, then fill 10 test files
+    """ create a file tree with 3 width and 2 depth, then fill 10 test files
     """
     # initialize a file tree
     demotree = NfvTree(tree_root="E:\\testdir\\testtree2", tree_width=3, tree_depth=2)
@@ -57,5 +57,5 @@ def tailor_tree():
 
 if __name__ == '__main__':
     
-    #create_tree()
+    create_tree()
     tailor_tree()

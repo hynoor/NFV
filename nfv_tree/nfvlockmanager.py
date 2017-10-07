@@ -1,8 +1,9 @@
 """ This module implements 2 primary class to manipulating file locks
 
-:class NfvLockManager : manage file locks
-:class NfvLock        : file lock
+:class NfvLockManager : a data structure represent managing bunch of file locks
+:class NfvLock        : a data structure represent a file lock
 
+NOTEs:
 - One NfvLockManger object can attach one file obejct only
 - One NfvLockManger object can manage multiple NfvLock obejcts
 - One NfvLock object can attach one NfvFile Object only 
@@ -33,12 +34,6 @@ if os.name == 'posix':
     import struct
 elif os.name == 'nt':
     import msvcrt
-
-
-""" This module implements 2 primary class to manipulating file locks
-:class NfvLockManager : manage file locks
-:class NfvLock        : file lock
-"""
 
 
 

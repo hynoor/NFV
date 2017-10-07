@@ -16,7 +16,7 @@ def ads_demo():
         lockmgr = NfvLockManager()
         lockmgr.attach(f)
         lockproducer = lockmgr.create_lock()
-        for i, lock in zip(range(100), lockproducer):
+        for i, lock in zip(range(10), lockproducer):
             mylock = lockproducer
         mgrs.append(lockmgr)
 
@@ -24,7 +24,7 @@ def ads_demo():
         for l in m:
             l.on()
     print("start to wait")
-    time.sleep(1000)
+    time.sleep(000)
         
 
 def deploy_tree():

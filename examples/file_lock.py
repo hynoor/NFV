@@ -1,10 +1,3 @@
-""" byte-range file lock instructions
-
-- One NfvLockManger object can attach one file obejct only
-- One NfvLockManger object can manage multiple NfvLock obejcts
-- One NfvLock object can attach one NfvFile Object only 
-
-"""
 import time
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 from nfv_tree.nfvlockmanager import NfvLockManager, NfvLock
@@ -21,14 +14,14 @@ def create_10_lock_on_single_file():
     
     # create a lock manger object
     lckmgr = NfvLockManager() 
-    # create a io tactic object
+    # create a default io tactic object
     iot = NfvIoTactic()
     # create a file object 
     myfile = NfvFile("E:\\testdir\\testfile.txt", size='8k', io_tactic=iot)
     # attach file object to lock manager
     lckmgr.attach(myfile)
     # produce 10 sequencial byte-range locks (1 byte length)
-    producelock = lckmgr.create_lock(mode='exclusive')
+    producelock = lckmgr.feed_lock(mode='exclusive')
     for i in range(10):
         next(producelock)
 

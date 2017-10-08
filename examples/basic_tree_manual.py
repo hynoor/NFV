@@ -5,20 +5,26 @@ def create_tree():
     """
     # initialize a file tree
     demotree = NfvTree(tree_root="E:\\testdir\\testtree2", tree_width=3, tree_depth=2)
+    print("Tree initialzed")
 
     # create io tactic for subsequent file deployment 
     iot = NfvIoTactic(data_pattern='random', seek_type='random', io_size='1k')
+    print("Io tactic initialzed")
 
     # apply the io tactic on the file tree
     demotree.set_tactic(iot)
+    print("Io tactic deployed")
 
     # start to deploy 10 files with each has 2k file size
     demotree.create_file(number=10, size='2k')
+    print("File deployed")
 
     # wipe the entire file tree
     demotree.wipe()
+    print("Tree wiped")
 
     del demotree
+    print("Tree deleted")
 
 
 def tailor_tree():
@@ -45,8 +51,7 @@ def tailor_tree():
     # tailor the number of file to 0, which equivalent to wipe()
     demotree.tailor(file_number=0)
 
-    # tailor the number of file to 10, which equivalent 
-    # to craete_file(number=10,size='2k')
+    # tailor the number of file to 10, which equivalent to craete_file(number=10,size='2k')
     demotree.tailor(file_number=10, file_size='2k')
 
     demotree.wipe()
@@ -58,4 +63,4 @@ def tailor_tree():
 if __name__ == '__main__':
     
     create_tree()
-    tailor_tree()
+    #tailor_tree()

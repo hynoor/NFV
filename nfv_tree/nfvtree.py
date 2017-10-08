@@ -242,7 +242,11 @@ class NfvTree:
         :param file_size   : size of file which to be added
         :retrun            : *none*
         """
+        if not exists(self._root):
+            raise Exception("file tree does not exist!")
+
         deltanum = abs(file_number - len(self._files))
+
         if file_number > len(self._files):
             self.create_file(number=deltanum, size=file_size)
         if file_number < len(self._files):
@@ -386,6 +390,8 @@ class NfvTree:
         # clear dirs
         rmtree(self._root)
         self._dirs = {}
+
+        del self
   
 
     def __iter__(self):
@@ -760,7 +766,8 @@ class NfvIoTactic:
 
     def set_property(self, attrs={}):
         """ set given properties
-        :param attrs : a dict contains the property-value pairs to be set
+
+        :param attrs : a dictionary contains the property-value pairs to be set
         :return      : *none*
         """
         properties = {
@@ -769,8 +776,10 @@ class NfvIoTactic:
             'seek_type'    : '_seek',
             'data_check'   : '_datacheck',
         }
+
         if type(attrs) is not dict:
             raise ValueError("ERROR: dictinonary param 'attrs' is required!")
+
         for key, value in attrs.items():
             if key in properties.keys():
                 setattr(self, properties[key], value)
@@ -782,6 +791,7 @@ class NfvIoTactic:
 
     def get_property(self, name=None):
         """ get the value of given property
+
         :param name : name of property to be retrieved
         :return     : value of given parameter name, if param name was not given, return all properies
         """
@@ -791,6 +801,7 @@ class NfvIoTactic:
             'seek_type'    : self._seek,
             'data_check'   : self._datacheck,
         }
+
         if name is None:
             return properties
         if name in properties.keys():
@@ -800,7 +811,8 @@ class NfvIoTactic:
 
 
     def get_data(self):
-        """ renew data for each I/O 
+        """ renew and fetch data feed for each I/O 
+
         :return : *none*
         """
         if self._datapattern == 'random':
@@ -839,6 +851,7 @@ class NfvIoTactic:
     @staticmethod
     def get_rand_buffer(size, buffer):
         """ randomly grab a piece of random bytes of data
+
         :param size   : size of data to be fetched
         :param buffer : buffer where data pool stores
         :return       : data grabbed 
@@ -863,8 +876,12 @@ class NfvIoTactic:
 
 
     def seek_to(self, file_size=0):
-        """ this method calculate the index of each write will locates on 
-            this is the fundamental algrithm for seek-type
+        """ calculate the index of each write will locates on 
+
+        this is the fundamental algrithm for seek-type, which support three
+        types of seeking, 'sequencial', 'random' and 'reverse'. wherer 'random' 
+        is roughly 3x slower then the others
+
         :param file_size : file size of target file used to constituted the seek strategy
         :return          : a generate object to supply the indexes
         """
@@ -873,7 +890,7 @@ class NfvIoTactic:
         modfilesize = numwrite * self._iosize
         if remainder > 0:
             yield (file_size - remainder)
-        if self._seek == 'seq':
+        if self._seek == 'seqencial':
             for idx in range(0, numwrite):
                 yield idx * self._iosize
         elif self._seek == 'reverse':
@@ -918,7 +935,7 @@ class NfvAdsStream(NfvFile):
 
 
  
-""" This module implements 2 primary class to manipulating file locks
+""" Code below implements 2 primary classes to manipulating file locks
 
 :class NfvLockManager : a data structure represent managing bunch of file locks
 :class NfvLock        : a data structure represent a file lock
@@ -1073,8 +1090,8 @@ class NfvLockManager:
                 lock.detach()
 
     
-    def create_lock(self, length=1, mode='exclusive', data=None):
-        """ create one lock at a time
+    def feed_lock(self, start=0, length=1, step=1, end=0, mode='exclusive', data=None):
+        """ offer one lock at a time until the file end or user given strategy
 
         generator function: sequencially create a NfvLock object 
         at a time, try best to produce maximu number of locks(which number
@@ -1088,7 +1105,10 @@ class NfvLockManager:
         :param locking_mode : the locking mode to be used
         :yield              : yield a lock object
         """
-        lockstep = 1        
+        lockstart = start
+        lockstep = step
+        locklength = length
+        lockend = end
         filesize = 0
         lock = None
 
@@ -1101,7 +1121,7 @@ class NfvLockManager:
             # nt lock will not merge the ajacent locks
             lockstep = 0
 
-        locklocator = self.locator(file_size=filesize, start=0, lock_length=1, step=lockstep, stop=0)
+        locklocator = self.locator(file_size=filesize, start=lockstart, lock_length=locklength, step=lockstep, stop=lockend)
         for loc in locklocator:
             lock = NfvLock(loc[0], loc[1], mode, data)
             if self._isattached:
@@ -1140,7 +1160,7 @@ class NfvLockManager:
                 lock_length=locklen, step=lockstep, stop=lockstop)
 
         for loc in locklocator:
-            lock =  NfvLock(offset=loc[0], length=loc[1], mode=lockmode, data=data)
+            lock = NfvLock(offset=loc[0], length=loc[1], mode=lockmode, data=data)
             self._repository.add(lock)
 
 

@@ -475,7 +475,7 @@ class NfvFile:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(idx)
                 fh.write(data)
-            if remainder > 0 and (self._iotactic._seek == 'seq' or self._iotactic._seek == 'random'):
+            if remainder > 0 and (self._iotactic._seek == 'sequencial' or self._iotactic._seek == 'random'):
                 data = self._iotactic.get_data()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
@@ -624,7 +624,7 @@ class NfvFile:
             for idx in indexsupplier:
                 fh.seek(idx)
                 fh.read(self._iotactic._iosize)
-            if remainder > 0 and (self._iotactic.get_property('seek-type') == 'seq'\
+            if remainder > 0 and (self._iotactic.get_property('seek-type') == 'sequencial'\
                     or self._iotactic.get_property('seek-type') == 'random'):
                 fh.seek(rindex)
                 fh.read(remainder)
@@ -734,11 +734,11 @@ class NfvIoTactic:
             '_datacheck'
     )
 
-    _seeks = ('seq', 'random', 'reverse')
+    _seeks = ('sequencial', 'random', 'reverse')
     _patterns = ('fixed', 'random')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
-    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='seq', data_check=True):
+    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', data_check=True):
         """ NfvIoTactic constructor
 
         :param io_size      : io size of tactic to be adopted
@@ -890,7 +890,7 @@ class NfvIoTactic:
         modfilesize = numwrite * self._iosize
         if remainder > 0:
             yield (file_size - remainder)
-        if self._seek == 'seqencial':
+        if self._seek == 'sequencial':
             for idx in range(0, numwrite):
                 yield idx * self._iosize
         elif self._seek == 'reverse':

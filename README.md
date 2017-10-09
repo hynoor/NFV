@@ -121,14 +121,13 @@ for lck in lckmgr:
     
 ```
 
-#### **_Basic ADS Manipulation_ **(TBD)
+#### **_Basic ADS Manipulation_**(TBD)
 
 
 
 ### Methods Overview
 
->####NfvTree
->
+> ####NfvTree
 >``` python
 >create_file(size='8K', number=1, io_tactic=None)
 >
@@ -155,9 +154,9 @@ for lck in lckmgr:
 >checksum(self, chunk_size=4096)
 >
 >clear_file()
-```
+>```
 
->####NfvFile
+> ####NfvFile
 
 >``` python
 >set_tactic(tactic=None)
@@ -186,15 +185,15 @@ for lck in lckmgr:
 >
 >```
 
->####NfvIoTactic
+> ####NfvIoTactic
 
 >``` python
 >set_property(attrs={})
->
+
 >get_property(name=None)
->
+
 >random_pattern(self)
->
+
 >fixed_pattern(pattern=None)
 >```
 
@@ -202,39 +201,39 @@ for lck in lckmgr:
 > ####NfvLockManager
 > ``` python
 > add_lock(lock=None)
-> 
+
 > remove_lock(lock=None)
->
+
 >attach(file=None)
->
+
 >detach()
->
+
 >get_property(name=None)
->
+
 >feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
->
+
 >deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None)
->
+
 >wipe_lock()
->
+
 >```
 
->####NfvLock
->
+> ####NfvLock
+
 >``` python
 >remove_lock(lock=None)
->
+
 >attach(file=None)
->
+
 >detach()
->
+
 >is_attached()
->
+
 >is_locked()
->
+
 >get_property(name=None)
->
+
 >on()
->
+
 >off()
 >```

@@ -25,19 +25,19 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 There are 6 primary classes defined in **nfv_tree** module
-> **NfvTree**
+> _**NfvTree**_
 > NfvTree is the fundamental class represent the file tree, which is comprised of multiple sub folders and NfvFile objects. NfvTree object support bunch of manipulations on containing files , such as _overwrite_, _copy_, _move_, _checksum_ etc.
 > 
-> **NfvFile**
+> _**NfvFile**_
 > NfvFile is the class represents a file. NfvFile object support bunch of file manipulations on itself, such as _overwrite_, _copy_, _move_, _checksum_ etc.
 >
-> **NfvIoTactic**
+> _**NfvIoTactic**_
 > Tactic of the I/O to be adopted, including data_pattern, seek_type, io_size etc.
 >
-> **NfvLockManager**
+> _**NfvLockManager**_
 > A class designed to manager byte range locks, by which way, user could easily manage large number of locks with small snippet of code
 > 
-> **NfvLock**
+> _**NfvLock**_
 > A class represent a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
 
 #### _Basic File Tree Manipulations_

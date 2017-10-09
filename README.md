@@ -40,7 +40,8 @@ There are 6 primary classes defined in **nfv_tree** module
 > **NfvLock**
 > A class represent a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
 
- - **Basic File Tree Manipulations**
+#### _Basic File Tree Manipulations_
+ 
 ``` python
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
@@ -65,7 +66,7 @@ mytree.set_tactic(iot)
 # overwrite with new i/o tactic
 mytree.overwrite()
 ```
-- **Basic File Manipulations**
+#### _Basic File Manipulations_
 ``` python
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
@@ -90,8 +91,7 @@ myfile.set_tactic(iot)
 myfile.overwirte()
 ```
 
-- **Basic File Lock Manipulations**
-
+#### _Basic File Lock Manipulations_
 ``` python
 from nfv_tree.nfvtree import NfvFile, NfvLock, NfvLockManager
 
@@ -122,7 +122,7 @@ for lck in lckmgr:
 ```
 
 
-- **Basic ADS Manipulation**
+#### _Basic ADS Manipulation_ (TBD)
 
 
 

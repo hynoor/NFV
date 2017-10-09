@@ -127,113 +127,110 @@ for lck in lckmgr:
 
 ### Methods Overview
 
-> ####NfvTree
+> NfvTree
 >``` python
 >create_file(size='8K', number=1, io_tactic=None)
->
+> 
 >set_tactic(tactic=None)
->
+> 
 >remove_file(number=1)
->
+> 
 >get_property(name=None)
->
+> 
 >tailor(file_number=None, file_size='8k')
->
+> 
 >truncate(target_size=None)
->
+> 
 >append(delta=None)
->
+> 
 >copy(dest_tree=None, name_length=8, name_seed=None)
->
+> 
 >rename(name_seed=None, name_length=8)
->
+> 
 >overwrite()
->
+> 
 >read()
->
+> 
 >checksum(self, chunk_size=4096)
->
+> 
 >clear_file()
 >```
 
-> ####NfvFile
-
+> NfvFile
 >``` python
 >set_tactic(tactic=None)
->
+> 
 >get_property(name=None)
->
+> 
 >truncate(target_size=None)
->
+> 
 >append(delta=None)
->
+> 
 >copy(dest_tree=None, name_length=8, name_seed=None)
->
+> 
 >rename(name_seed=None, name_length=8)
->
+> 
 >overwrite()
->
+> 
 >read()
->
+> 
 >checksum(chunk_size=4096)
->
+> 
 >create_ads(streams=None, size='8k')
->
+> 
 >overwrite_ads(streams=None, size='8k')
->
+> 
 >remove_ads(streams=None)
->
+> 
 >```
 
-> ####NfvIoTactic
-
+> NfvIoTactic
 >``` python
 >set_property(attrs={})
-
+> 
 >get_property(name=None)
-
+> 
 >random_pattern(self)
-
+> 
 >fixed_pattern(pattern=None)
 >```
 
 
-> ####NfvLockManager
+> NfvLockManager
 > ``` python
 > add_lock(lock=None)
-
+> 
 > remove_lock(lock=None)
-
+> 
 >attach(file=None)
-
+> 
 >detach()
-
+> 
 >get_property(name=None)
-
+> 
 >feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
-
+> 
 >deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None)
-
+> 
 >wipe_lock()
-
+> 
 >```
 
-> ####NfvLock
-
+>NfvLock
 >``` python
 >remove_lock(lock=None)
-
+> 
 >attach(file=None)
-
+> 
 >detach()
-
+> 
 >is_attached()
-
+> 
 >is_locked()
-
+> 
 >get_property(name=None)
-
+> 
 >on()
-
+> 
 >off()
 >```

@@ -432,54 +432,70 @@ for lck in lckmgr:
 
 > NfvLockManager
 > ``` python
-> add_lock(lock=None)
-> desc.        : add an existing NfvLock object to NfvLockManager object
+> def add_lock(lock=None):
+> """ add an existing NfvLock object to NfvLockManager object
+> 
 > param lock   : NfvLock object to be added
 > return       : none
+> """
 > 
-> remove_lock(lock=None)
-> desc.        : remove an existing NfvLock object from NfvLockManager object
+> def remove_lock(lock=None):
+> """ remove an existing NfvLock object from NfvLockManager object
+> 
 > param lock   : NfvLock object to be removed, if it's None, will randomly remove one
 > return       : none
+> """
 > 
-> attach(file=None)
-> desc.        : attach to a NfvFile object
+> def attach(file=None):
+> """ attach to a NfvFile object
+> 
 > param file   : NfvFile object to be attached on
 > return       : none
+> """
 > 
-> detach()
-> desc.        : dettach from a NfvFile object
+> def detach():
+> """ dettach from a NfvFile object
+> 
 > param file   : NfvFile object to be dettached from
 > return       : none
+> """
 > 
-> get_property(name=None)
-> desc.        : get the value(s) of property of NfvLockManager object
+> def get_property(name=None):
+> """ get the value(s) of property of NfvLockManager object
+> 
 > param name   : name of target property to be retrieved, if it's None, a dict containing all properties will be returned
 > return       : value of the given property
+> """
 > 
-> feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
-> desc.        : a generator function for feeding NfvLock objects
+> def feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None):
+> """ a generator function for feeding NfvLock objects
+> 
 > param start  : start offset the first lock object locates
 > param length : length in bytes of lock object to be feeded
 > param step   : the interval between adjacent lock object on the file
 > param end    : end offset the last lock object locates
 > param mode   : locking mode to be set (exclusive/shared/exclusive_blk)
 > yield        : a NfvLock object
+> """
 > 
-> deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None)
-> desc.        : function for creating NfvLock objects within NfvLockManager object
+> def deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None):
+> """ function for creating NfvLock objects within NfvLockManager object
+> 
 > param start  : start offset the first lock object locates
 > param length : length in bytes of lock object to be feeded
 > param step   : the interval between adjacent lock object on the file
 > param end    : end offset the last lock object locates
 > param mode   : locking mode to be set (exclusive/shared/exclusive_blk)
 > return       : none
+> """
 > 
-> wipe_lock()
-> desc.        : wipe all NfvLock object managed by NfvLockManager object
+> def wipe_lock():
+> """ wipe all NfvLock object managed by NfvLockManager object
+> 
 > return       : none
+> """
 > ```
-
+> 
 > NfvLock
 > ``` python
 > def attach(file=None):

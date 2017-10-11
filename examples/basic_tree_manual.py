@@ -1,10 +1,35 @@
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
+def customize_data_pattern():
+    """ build a complex data pattern for I/O manipulations
+    """
+
+    # build a compress data pattern with 90%  each byte hascompressible ratio
+    dp1 = NfvIoTactic.compress_pattern(compress_ratio=90, io_size='10k', chunk=10)
+
+    # build a data pattern with binary zero
+    dp2 = NfvIoTactic.hex_pattern(hex_value='ff', io_size='10k')
+
+    # build a 20KB size data pattern with each byte has customized bits like '10000001'  
+    dp3 = NfvIoTactic.bit_pattern(bits='10000001', io_size='10k')
+
+    # compound all built data pattern together
+    dp = dp1 + dp2 + dp3
+
+    # initialize a NfvIoTactic object and set the data pattern
+    iot = NfvIoTactic()
+    iot.set_data_pattern(dp)
+
+    # create a file tree then create 100 files with assigned data pattern
+    mytree=NfvTree(tree_root="test_dir\\test_tree", io_tactic=iot)
+    mytree.tailor(file_number=100, file_size='1M')
+
+  
 def create_tree():
     """ create a file tree with 3 width and 2 depth, then fill 10 test files
     """
     # initialize a file tree
-    demotree = NfvTree(tree_root="E:\\testdir\\testtree2", tree_width=3, tree_depth=2)
+    demotree = NfvTree(tree_root="testdir\\testtree2", tree_width=3, tree_depth=2)
     print("Tree initialzed")
 
     # create io tactic for subsequent file deployment 
@@ -31,7 +56,7 @@ def tailor_tree():
     """ tailor the number of the files within the file tree
     """
     # initialize a file tree
-    demotree = NfvTree(tree_root="E:\\testdir\\testtree2", tree_width=3, tree_depth=2)
+    demotree = NfvTree(tree_root="testdir\\testtree2", tree_width=3, tree_depth=2)
 
     # create io tactic for subsequent file deployment 
     iot = NfvIoTactic(data_pattern='fixed', seek_type='reverse', io_size='2k')
@@ -59,8 +84,10 @@ def tailor_tree():
     del demotree
 
 
-
 if __name__ == '__main__':
-    
+    """ main test
+    """
     create_tree()
-    #tailor_tree()
+    tailor_tree()
+    customize_data_pattern()
+

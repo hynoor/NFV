@@ -102,7 +102,7 @@ dp1 = NfvIoTactic.compress_pattern(comress_ratio=90, io_size='80k', chunk=10)
 dp2 = NfvIoTactic.hex_pattern(hex_value='00', io_size='10k')
 
 # build a 20KB size data pattern with customized bits like '10000001'  
-dp3 = NfvIoTactic.hex_pattern(bits='10000001', io_size='20k')
+dp3 = NfvIoTactic.bit_pattern(bits='10000001', io_size='20k')
 
 # compound all built data pattern together
 dp = dp1 + dp2 + dp3

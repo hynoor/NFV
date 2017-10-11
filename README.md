@@ -132,7 +132,7 @@ lckmgr.attach(myfile)
 
 # Produce 10 byte-range locks with each lock has 10 bytes of length 
 lckgen = lckmgr.feed_lock(length=10)
-for _ in lckgen:
+for _ in range(10):
     next(lckgen)
 
 # Switch on all 10 locks attached on the file

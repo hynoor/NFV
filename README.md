@@ -164,121 +164,222 @@ for lck in lckmgr:
 ### Methods Overview
 
 > NfvTree
->``` python
->create_file(size='8K', number=1, io_tactic=None)
+> ``` python
 > 
->set_tactic(tactic=None)
+> create_file(size='8K', number=1, io_tactic=None)
+> desc.           : create a NfvFile object in NfvTree object
+> param size      : size of the file to be created 
+> param number    : number of files to be created
+> param io_tactic : a NfvIoTactic object to be set for I/O manipulations
+> return          : none
 > 
->remove_file(number=1)
+> set_tactic(io_tactic=None)
+> desc.           : set the IO tactic to be adopted for IO manipulation
+> param io_tactic : a NfvIoTactic object to be set for I/O manipulations
+> return          : none
 > 
->get_property(name=None)
+> remove_file(number=1)
+> desc.           : remove NfvFile object in the NfvTree object
+> param number    : number of file to be removed
+> return          : none
 > 
->tailor(file_number=None, file_size='8k')
+> get_property(name=None)
+> desc.       : get value of given property of NfvTree object
+> param name  : the name of property which value to be retrieved 
+> return      : value of given property
 > 
->truncate(target_size=None)
+> tailor(file_number=None, file_size='8k')
+> desc.             : tailor the NfvFile objects in NfvTree object to expected number
+> param file_number : the number of NfvFile object to be tailored to
+> param file_size   : the size of newly created NfvFile object in the NfvTree object
+> return            : none
 > 
->append(delta=None)
+> truncate(target_size=None)
+> desc.      : truncate the size of all NfvFile objects in the NfvTree object to given size
+> param size : the size of NfvFile object to be truncated to
+> return     : none
 > 
->copy(dest_tree=None, name_length=8, name_seed=None)
+> append(delta=None)
 > 
->rename(name_seed=None, name_length=8)
+> copy(dest_tree=None, name_length=8, name_seed=None)
 > 
->overwrite()
+> rename(name_seed=None, name_length=8)
 > 
->read()
+> overwrite()
 > 
->checksum(self, chunk_size=4096)
+> read()
 > 
->clear_file()
->```
+> checksum(self, chunk_size=4096)
+> 
+> clear_file()
+> ```
 
 > NfvFile
->``` python
->set_tactic(tactic=None)
+> ``` python
+> set_tactic(tactic=None)
 > 
->get_property(name=None)
+> get_property(name=None)
+> desc.       : get value of given property of NfvIoTactic object
+> param name  : the name of property which value to be retrieved 
+> return      : value of given property
 > 
->truncate(target_size=None)
+> truncate(target_size=None)
 > 
->append(delta=None)
+> append(delta=None)
 > 
->copy(dest_tree=None, name_length=8, name_seed=None)
+> copy(dest_tree=None, name_length=8, name_seed=None)
 > 
->rename(name_seed=None, name_length=8)
+> rename(name_seed=None, name_length=8)
 > 
->overwrite()
+> overwrite()
 > 
->read()
+> read()
 > 
->checksum(chunk_size=4096)
+> checksum(chunk_size=4096)
 > 
->create_ads(streams=None, size='8k')
+> create_ads(streams=None, size='8k')
 > 
->overwrite_ads(streams=None, size='8k')
+> overwrite_ads(streams=None, size='8k')
 > 
->remove_ads(streams=None)
+> remove_ads(streams=None)
 > 
->```
+> ```
 
 > NfvIoTactic
->``` python
->set_property(self, attrs={})
+> ``` python
+> set_property(self, attrs={})
+> desc.       : set the property of NfvIoTactic object
+> param attrs : a dict object contains key-value pairs of properties to be set
+> return      : none
 > 
->get_property(name=None)
+> get_property(name=None)
+> desc.       : get value of given property of NfvIoTactic object
+> param name  : the name of property which value to be retrieved 
+> return      : value of given property
 > 
 > get_data_pattern(self)
+> desc.       : get current data pattern of the NfvIoTactic object
+> return      : value of the data pattern
 > 
 > set_data_pattern(self, data=None)
+> desc.       : set data pattern of NfvIoTactic object
+> param data  : the data pattern to be applied to the NfvIoTactic object
+> return      : value of the data pattern
 > 
 > clear_data_pattern(self)
+> desc.       : clear the data pattern in current NfvIoTactic object
+> return      : none
 > 
-> fixed_pattern(pattern=None, io_size='8k')
+> fixed_pattern(pattern=None, io_size='8k') : static_method
+> desc.         : build  a fixed data pattern with given io_size
+> param pattern : the pattern template used to build data pattern
+> param io_size : the size of data pattern to be built
+> return        : value of the data pattern just built
 > 
-> random_pattern(io_size='8k')
+> random_pattern(io_size='8k') : static_method
+> desc.         : build a random data pattern with given io_size
+> param io_size : the size of data pattern to be built
+> return        : value of the data pattern just built
 > 
-> fixed_pattern(pattern=None, io_size='8k')
+> hex_pattern(hex_value='00', io_size='8k') : static_method
+> desc.           : build a data pattern with given io_size which is customizable in hex value
+> param hex_value : the patten template in hex value
+> return          : value of the data pattern just built
 > 
-> hex_pattern(hex_value='00', io_size='8k')
+> bit_pattern(bits='00000000', io_size='8k') : static_method
+> desc.           : build a data pattern with given io_size which is customizable in bit wise
+> param bits      : the specific 8 long bits to be used as template for buiding data pattern
+> return          : value of the data pattern just built
 > 
-> bit_pattern(bits='00000000', io_size='8k')
->```
+> compound_pattern(contanier=None, pattern_func=None, *args, **kwargs) : static_method
+> desc.              : build a data pattern which compounded on top of existing data pattern(s)
+> param container    : a variable used for maintaining existing data pattern and data pattern built by current method
+> param pattern_func : function object used for building data pattern
+> param *args        : the array arguments passed for pattern builder function
+> param bits         : the keywords arguments passed for pattern builder function
+> return             : value of the data pattern just built and compounded
+> ```
 
 
 > NfvLockManager
 > ``` python
 > add_lock(lock=None)
+> desc.      : add an existing NfvLock object to NfvLockManager object
+> param lock : NfvLock object to be added
+> return     : none
 > 
 > remove_lock(lock=None)
+> desc.      : remove an existing NfvLock object from NfvLockManager object
+> param lock : NfvLock object to be removed, if it's None, will randomly remove one
+> return     : none
 > 
->attach(file=None)
+> attach(file=None)
+> desc.      : attach to a NfvFile object
+> param file : NfvFile object to be attached on
+> return     : none
 > 
->detach()
+> detach()
+> desc.      : dettach from a NfvFile object
+> param file : NfvFile object to be dettached from
+> return     : none
 > 
->get_property(name=None)
+> get_property(name=None)
+> desc.      : get the value(s) of property of NfvLockManager object
+> param name : name of target property to be retrieved, if it's None, a dict containing all properties will be returned
+> return     : value of the given property
 > 
->feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
+> feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
+> desc.        : a generator function for feeding NfvLock objects
+> param start  : start offset the first lock object locates
+> param length : length in bytes of lock object to be feeded
+> param step   : the interval between adjacent lock object on the file
+> param end    : end offset the last lock object locates
+> param mode   : locking mode to be set (exclusive/shared/exclusive_blk)
+> yield        : a NfvLock object
 > 
->deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None)
+> deploy_lock(start=0, step=1, length=1, stop=1, mode='exclusive', data=None)
+> desc.        : function for creating NfvLock objects within NfvLockManager object
+> param start  : start offset the first lock object locates
+> param length : length in bytes of lock object to be feeded
+> param step   : the interval between adjacent lock object on the file
+> param end    : end offset the last lock object locates
+> param mode   : locking mode to be set (exclusive/shared/exclusive_blk)
+> return       : none
 > 
->wipe_lock()
-> 
->```
+> wipe_lock()
+> desc.        : wipe all NfvLock object managed by NfvLockManager object
+> return       : none
+> ```
 
->NfvLock
->``` python
->remove_lock(lock=None)
+> NfvLock
+> ``` python
+> attach(file=None)
+> desc.      : attach NfvLock object onto a NfvFile obejct
+> param file : NfvFile object be attached
+> return     : none
 > 
->attach(file=None)
+> detach()
+> desc.      : detach NfvLock object from its attached NfvFile object
+> return     : none
 > 
->detach()
+> is_attached()
+> desc.      : check if current NfvLock is attached on NfvFile object already
+> return     : True or False
 > 
->is_attached()
+> is_locked()
+> desc.      : check if current NfvLock is ON of OFF
+> return     : True or False
 > 
->is_locked()
+> get_property(name=None)
+> desc.      : get the value of given property
+> param name : name of the property to be retrieved
+> return     : value of property given
 > 
->get_property(name=None)
+> on()
+> desc.      : switch on the lock
+> return     : none
 > 
->on()
-> 
->off()
->```
+> off()
+> desc.      : switch off the lock
+> return     : none
+> ```

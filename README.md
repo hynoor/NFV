@@ -160,173 +160,298 @@ for lck in lckmgr:
 #### **_Sample: Basic ADS Manipulation_**(TBD)
 
 
-
 ### Methods Overview
 
 > NfvTree
 > ``` python
+> def create_file(size='8K', number=1, io_tactic=None):
+> """ create a NfvFile object in NfvTree object
 > 
-> create_file(size='8K', number=1, io_tactic=None)
-> desc.           : create a NfvFile object in NfvTree object
-> param size      : size of the file to be created 
-> param number    : number of files to be created
-> param io_tactic : a NfvIoTactic object to be set for I/O manipulations
-> return          : none
+> param size        : size of the file to be created 
+> param number      : number of files to be created
+> param io_tactic   : a NfvIoTactic object to be set for I/O manipulations
+> return            : none
+> """
 > 
-> set_tactic(io_tactic=None)
-> desc.           : set the IO tactic to be adopted for IO manipulation
-> param io_tactic : a NfvIoTactic object to be set for I/O manipulations
-> return          : none
+> def set_tactic(io_tactic=None):
+> """ set the IO tactic to be adopted for IO manipulation
 > 
-> remove_file(number=1)
-> desc.           : remove NfvFile object in the NfvTree object
-> param number    : number of file to be removed
-> return          : none
+> param io_tactic   : a NfvIoTactic object to be set for I/O manipulations
+> return            : none
+> """
 > 
-> get_property(name=None)
-> desc.       : get value of given property of NfvTree object
-> param name  : the name of property which value to be retrieved 
-> return      : value of given property
+> def remove_file(number=1):
+> """ remove NfvFile object in the NfvTree object
 > 
-> tailor(file_number=None, file_size='8k')
-> desc.             : tailor the NfvFile objects in NfvTree object to expected number
+> param number      : number of file to be removed
+> return            : none
+> """
+> 
+> def get_property(name=None):
+> """ get value of given property of NfvTree object
+> 
+> param name        : the name of property which value to be retrieved 
+> return            : value of given property
+> """
+> 
+> def tailor(file_number=None, file_size='8k'):
+> """ tailor the NfvFile objects in NfvTree object to expected number
+> 
 > param file_number : the number of NfvFile object to be tailored to
 > param file_size   : the size of newly created NfvFile object in the NfvTree object
 > return            : none
+> """
 > 
-> truncate(target_size=None)
-> desc.      : truncate the size of all NfvFile objects in the NfvTree object to given size
-> param size : the size of NfvFile object to be truncated to
-> return     : none
+> def truncate(target_size=None):
+> """ truncate the size of all NfvFile objects in the NfvTree object to given size
 > 
-> append(delta=None)
+> param size        : the size of NfvFile object to be truncated to
+> return            : none
+> """
 > 
-> copy(dest_tree=None, name_length=8, name_seed=None)
+> def append(delta=None):
+> """ append all NfvFile object in the NfvTree object
 > 
-> rename(name_seed=None, name_length=8)
+> param delta       : the delta size to be appended
+> return            : none
+> """
 > 
-> overwrite()
+> def copy(dest_tree=None, name_length=8, name_seed=None):
+> """ copy the NfvTree object 
 > 
-> read()
+> param dest_tree   : the tree root path of destination NfvTree object, if it's None, the destination tree will be merged into current NfvTree object
+> param name_length : the name of length of NfvFile objects of the  destination NfvTree object
+> param name_seed   : the name seed of NfvFile objects of the  destination NfvTree object
+> return            : the destination NfvTree object
+> """
 > 
-> checksum(self, chunk_size=4096)
+> def rename(name_seed=None, name_length=8):
+> """ rename the NfvFile object in the NfvTree object
 > 
-> clear_file()
+> param name_length : the name of length of NfvFile objects to be renamed to 
+> param name_seed   : the name seed of NfvFile of the NfvFile object to be used when rename
+> return            : none
+> """
+> 
+> def overwrite():
+> """ overwrite the data of NfvFile object of NfvTree object
+> 
+> return            : none
+> """
+> 
+> def read():
+> """ read the data of each NfvFile objects in the NfvTree object
+> 
+> return            : none
+> """
+> 
+> def checksum(self, chunk_size=4096):
+> """ checksum the data of NfvFile objects in NfvTree object
+> return            : none
+> """
+> 
+> def clear_file():
+> """ clear all on-disk files with NfvTree object
+> 
+> return            : none
+> """
 > ```
+
 
 > NfvFile
 > ``` python
-> set_tactic(tactic=None)
+> def set_tactic(io_tactic=None):
+> """ set the io tactic for I/O manipulation
 > 
-> get_property(name=None)
-> desc.       : get value of given property of NfvIoTactic object
-> param name  : the name of property which value to be retrieved 
-> return      : value of given property
+> param io_tactic   : the name of property which value to be retrieved 
+> return            : value of given property
+> """
+>  
+> def get_property(name=None):
+> """ get value of given property of NfvIoTactic object
 > 
-> truncate(target_size=None)
+> param name        : the name of property which value to be retrieved 
+> return            : value of given property
+> """
 > 
-> append(delta=None)
+> def truncate(target_size=None):
+> """ truncate the size of all NfvFile object to given size
 > 
-> copy(dest_tree=None, name_length=8, name_seed=None)
+> param size        : the size of NfvFile object to be truncated to
+> return            : none
+> """
 > 
-> rename(name_seed=None, name_length=8)
+> def append(delta=None):
+> """ append the size of NfvFile object
 > 
-> overwrite()
+> param delta       : the delta size to be appended
+> return            : none
+> """
 > 
-> read()
+> def copy(dest_path=None, name_length=8, name_seed=None):
+> """copy the NfvFile object
 > 
-> checksum(chunk_size=4096)
+> param dest_path   : the path of destination NfvFile object, if it's None, a random path will be used
+> param name_length : the name of length of NfvFile objects of the  destination NfvFile object
+> param name_seed   : the name seed of NfvFile objects of the destination NfvFile object
+> return            : none
+> """
 > 
-> create_ads(streams=None, size='8k')
+> def rename(name_seed=None, name_length=8):
+> """ rename the NfvFile object
 > 
-> overwrite_ads(streams=None, size='8k')
+> param name_length : the name of length of NfvFile objects to be renamed to
+> param name_seed   : the name seed of NfvFile of the NfvFile object to be used when rename
+> return            : none
+> """
 > 
-> remove_ads(streams=None)
+> def overwrite():
+> """ overwrite the data of NfvFile object 
 > 
+> return            : none
+> """
+> 
+> def read():
+> """ read the data of each NfvFile object
+> 
+> return            : none
+> """
+> 
+> def checksum(chunk_size=4096):
+> """ checksum the data of NfvFile objects in NfvTree object
+> 
+> return            : checksum value
+> """
+> 
+> def create_ads(streams=None, size='8k'):
+> """ create ADS stream on NfvFile object
+> 
+> param streams     : stream names to be created, accept dash and comma for easy input (ie: stream1-stream10, newstream)
+> param size        : size of the each stream to be created
+> return            : none
+> """
+> 
+> def overwrite_ads(streams=None, size='8k'):
+> """ overwrite ADS streams on NfvFile object
+> 
+> param streams     : stream names to be overwrote, accept dash and comma for easy input (ie: stream1-stream10, newstream)
+> param size        : size of the each stream to be overwrote
+> return            : none
+> """
+> 
+> def remove_ads(streams=None):
+> """ remove ADS streams on NfvFile object
+> 
+> param streams     : stream names to be removed, accept dash and comma for easy input (ie: stream1-stream10, newstream)
+> return            : none
+> """
 > ```
 
 > NfvIoTactic
 > ``` python
-> set_property(self, attrs={})
-> desc.       : set the property of NfvIoTactic object
-> param attrs : a dict object contains key-value pairs of properties to be set
-> return      : none
+> def set_property(self, attrs={}):
+> """ set the property of NfvIoTactic object
 > 
-> get_property(name=None)
-> desc.       : get value of given property of NfvIoTactic object
-> param name  : the name of property which value to be retrieved 
-> return      : value of given property
+> param attrs        : a dict object contains key-value pairs of properties to be set
+> return             : none
+> """
 > 
-> get_data_pattern(self)
-> desc.       : get current data pattern of the NfvIoTactic object
-> return      : value of the data pattern
+> def get_property(name=None):
+> """ get value of given property of NfvIoTactic object
 > 
-> set_data_pattern(self, data=None)
-> desc.       : set data pattern of NfvIoTactic object
-> param data  : the data pattern to be applied to the NfvIoTactic object
-> return      : value of the data pattern
+> param name         : the name of property which value to be retrieved 
+> return             : value of given property
+> """
 > 
-> clear_data_pattern(self)
-> desc.       : clear the data pattern in current NfvIoTactic object
-> return      : none
+> def get_data_pattern(self):
+> """ get current data pattern of the NfvIoTactic object
 > 
-> fixed_pattern(pattern=None, io_size='8k') : static_method
-> desc.         : build  a fixed data pattern with given io_size
-> param pattern : the pattern template used to build data pattern
-> param io_size : the size of data pattern to be built
-> return        : value of the data pattern just built
+> return             : value of the data pattern
+> """
 > 
-> random_pattern(io_size='8k') : static_method
-> desc.         : build a random data pattern with given io_size
-> param io_size : the size of data pattern to be built
-> return        : value of the data pattern just built
+> def set_data_pattern(self, data=None):
+> """ set data pattern of NfvIoTactic object
+> param data         : the data pattern to be applied to the NfvIoTactic object
+> return             : value of the data pattern
+> """
 > 
-> hex_pattern(hex_value='00', io_size='8k') : static_method
-> desc.           : build a data pattern with given io_size which is customizable in hex value
-> param hex_value : the patten template in hex value
-> return          : value of the data pattern just built
+> def clear_data_pattern(self):
+> """ clear the data pattern in current NfvIoTactic object
 > 
-> bit_pattern(bits='00000000', io_size='8k') : static_method
-> desc.           : build a data pattern with given io_size which is customizable in bit wise
-> param bits      : the specific 8 long bits to be used as template for buiding data pattern
-> return          : value of the data pattern just built
+> return             : none
+> """
 > 
-> compound_pattern(contanier=None, pattern_func=None, *args, **kwargs) : static_method
-> desc.              : build a data pattern which compounded on top of existing data pattern(s)
+> @staticmethod 
+> def fixed_pattern(pattern=None, io_size='8k'):
+> """ build  a fixed data pattern with given io_size
+> 
+> param pattern      : the pattern template used to build data pattern
+> param io_size      : the size of data pattern to be built
+> return             : value of the data pattern just built
+> """
+> 
+> @staticmethod 
+> def random_pattern(io_size='8k'):
+> desc.              : build a random data pattern with given io_size
+> param io_size      : the size of data pattern to be built
+> return             : value of the data pattern just built
+> """
+> 
+> @staticmethod
+> def hex_pattern(hex_value='00', io_size='8k'):
+> """ build a data pattern with given io_size which is customizable in hex value
+> 
+> param hex_value    : the patten template in hex value
+> return             : value of the data pattern just built
+> """
+> 
+> @staticmethod 
+> def bit_pattern(bits='00000000', io_size='8k'):
+> """ build a data pattern with given io_size which is customizable in bit wise
+> 
+> param bits         : the specific 8 long bits to be used as template for buiding data pattern
+> return             : value of the data pattern just built
+> """
+> 
+> @staticmethod 
+> def compound_pattern(contanier=None, pattern_func=None, *args, **kwargs):
+> """ build a data pattern which compounded on top of existing data pattern(s)
+> 
 > param container    : a variable used for maintaining existing data pattern and data pattern built by current method
 > param pattern_func : function object used for building data pattern
 > param *args        : the array arguments passed for pattern builder function
 > param bits         : the keywords arguments passed for pattern builder function
 > return             : value of the data pattern just built and compounded
+> """
 > ```
 
 
 > NfvLockManager
 > ``` python
 > add_lock(lock=None)
-> desc.      : add an existing NfvLock object to NfvLockManager object
-> param lock : NfvLock object to be added
-> return     : none
+> desc.        : add an existing NfvLock object to NfvLockManager object
+> param lock   : NfvLock object to be added
+> return       : none
 > 
 > remove_lock(lock=None)
-> desc.      : remove an existing NfvLock object from NfvLockManager object
-> param lock : NfvLock object to be removed, if it's None, will randomly remove one
-> return     : none
+> desc.        : remove an existing NfvLock object from NfvLockManager object
+> param lock   : NfvLock object to be removed, if it's None, will randomly remove one
+> return       : none
 > 
 > attach(file=None)
-> desc.      : attach to a NfvFile object
-> param file : NfvFile object to be attached on
-> return     : none
+> desc.        : attach to a NfvFile object
+> param file   : NfvFile object to be attached on
+> return       : none
 > 
 > detach()
-> desc.      : dettach from a NfvFile object
-> param file : NfvFile object to be dettached from
-> return     : none
+> desc.        : dettach from a NfvFile object
+> param file   : NfvFile object to be dettached from
+> return       : none
 > 
 > get_property(name=None)
-> desc.      : get the value(s) of property of NfvLockManager object
-> param name : name of target property to be retrieved, if it's None, a dict containing all properties will be returned
-> return     : value of the given property
+> desc.        : get the value(s) of property of NfvLockManager object
+> param name   : name of target property to be retrieved, if it's None, a dict containing all properties will be returned
+> return       : value of the given property
 > 
 > feed_lock(start=0, length=1, step=1, end=0, mode='exclusive', data=None)
 > desc.        : a generator function for feeding NfvLock objects
@@ -353,33 +478,46 @@ for lck in lckmgr:
 
 > NfvLock
 > ``` python
-> attach(file=None)
-> desc.      : attach NfvLock object onto a NfvFile obejct
+> def attach(file=None):
+> """ attach NfvLock object onto a NfvFile obejct
+> 
 > param file : NfvFile object be attached
 > return     : none
+> """
 > 
-> detach()
-> desc.      : detach NfvLock object from its attached NfvFile object
+> def detach():
+> """ detach NfvLock object from its attached NfvFile object
+> 
 > return     : none
+> """
 > 
-> is_attached()
-> desc.      : check if current NfvLock is attached on NfvFile object already
+> def is_attached():
+> """ check if current NfvLock is attached on NfvFile object already
+> 
 > return     : True or False
+> """
 > 
-> is_locked()
-> desc.      : check if current NfvLock is ON of OFF
+> def is_locked():
+> """ check if current NfvLock is ON of OFF
+> 
 > return     : True or False
+> """
 > 
-> get_property(name=None)
-> desc.      : get the value of given property
+> def get_property(name=None):
+> """ get the value of given property
+> 
 > param name : name of the property to be retrieved
 > return     : value of property given
+> """
 > 
-> on()
-> desc.      : switch on the lock
+> def on():
+> """ switch on the lock
+> 
 > return     : none
+> """
 > 
-> off()
-> desc.      : switch off the lock
+> def off():
+> """ switch off the lock
+> 
 > return     : none
 > ```

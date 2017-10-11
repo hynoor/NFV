@@ -171,7 +171,7 @@ class NfvTree:
         self.update()
 
 
-    def set_tactic(self, tactic=None):
+    def set_tactic(self, io_tactic=None):
         """ set io tactic for the file tree
 
         attach a NfvIoTactic object to current file tree,
@@ -180,7 +180,7 @@ class NfvTree:
         :param tactic : NfvIoTactic object
         :return       : *none*
         """
-        if type(tactic) is not NfvIoTactic:
+        if type(io_tactic) is not NfvIoTactic:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
         self._iotactic = tactic
         for f in self._files:
@@ -323,7 +323,7 @@ class NfvTree:
         """ rename all on-disk file within file tree
 
         :param name_length : destination 
-        :return          :  NfvFile object just been removed
+        :return            : *none*
         """
         tmpset = set()
         for f in self._files:
@@ -537,13 +537,13 @@ class NfvFile:
             raise Exception("Given property name not found")
 
 
-    def set_tactic(self, tactic=None):
+    def set_tactic(self, io_tactic=None):
         """ set the tactic for file I/O manipulations
 
         :param io_tactic : NfvIoTactic object
         :return          : *none*
         """
-        if tactic is None:
+        if io_tactic is None:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
         self._iotactic = tactic
 
@@ -637,7 +637,7 @@ class NfvFile:
         """ checksum the data of on-disk file
         
         :param chunck_size : size of each chunck to be read for md5
-        :return            : *none*
+        :return            : checksum value  
         """
         if chunk_size > self._size:
             chunk_size = self._size
@@ -648,6 +648,7 @@ class NfvFile:
                 hashmd5.update(chunk)
 
         self._checksum = hashmd5.hexdigest()
+        return self._checksum
 
   
     def remove(self):
@@ -1450,6 +1451,9 @@ class NfvLock:
         """
         if self._isattached:
             raise Exception("Current lock already attach, need to detach first")
+
+        if file is None:
+            raise ValueError("Error: parameter file is required!")
 
         if type(file) is not NfvFile:
             raise Exception("Passed file is not a NfvFile object")

@@ -14,8 +14,12 @@ With _nfv_tree_, manipulations regarding network filesystem could be more flexib
 - Rich and customizable data-pattern supported
 - Innate user like test scenarios supported
 
+### Platforms
+- Windows 7 or above with python3 installed
+- Linux with python3 installed
+
 ### Installation
-_nfv_tree_  was published onto pypi, that means you can install from pip directly 
+_nfv_tree_ was published onto pypi, therefore you can install it from pip directly 
 ```
 python -m pip install nfv_tree
 Collecting nfv_tree
@@ -42,13 +46,13 @@ There are 6 primary classes defined in **nfv_tree** module
 > NfvFile is the class represents a file. NfvFile object support bunch of file manipulations on itself, such as _overwrite_, _copy_, _move_, _checksum_ etc.
 >
 > _**NfvIoTactic**_
-> Tactic of the I/O to be adopted, including data_pattern, seek_type, io_size etc.
+> Tactic of the I/O to be adopted, including strategies of data pattern, seek type, io size etc.
 >
 > _**NfvLockManager**_
 > A class designed to manager byte range locks, by which way, user could easily manage large number of locks with small snippet of code
 > 
 > _**NfvLock**_
-> A class represent a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
+> A class represents a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
 
 #### **_Sample: Basic File Tree Manipulations_**
  
@@ -420,7 +424,7 @@ for lck in lckmgr:
 > param container    : a variable used for maintaining existing data pattern and data pattern built by current method
 > param pattern_func : function object used for building data pattern
 > param *args        : the array arguments passed for pattern builder function
-> param bits         : the keywords arguments passed for pattern builder function
+> param **kwargs     : the keywords arguments passed for pattern builder function
 > return             : value of the data pattern just built and compounded
 > """
 > ```

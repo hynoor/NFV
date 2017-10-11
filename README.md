@@ -2,17 +2,27 @@
 Network Filesystem Validator (nfv_tree)
 ========================
 
-NFV is a module designed to simulate end to end test scenarios regarding file tree, which can be manipulated along with NFS, SMB even local file systems
+NFV is a module designed to simulate E2E user scenarios based on manipulating file tree, which can be manipulated along with NFS, SMB and even local file systems.
+
+With _nfv_tree_, manipulations regarding network filesystem could be more flexible and programmatic.
+
+- Discreional files/directories deployment
+- Manipulating files/diretories with more accessbilities
+- Plaftform-crossed support (Windows and Linux)
+- Alternate Data Stream supported
+- File byte-range locks supported
+- Rich and customizable data-pattern supported
+- Innate user like test scenarios supported
 
 ### Installation
 _nfv_tree_  was published onto pypi, that means you can install from pip directly 
 ```
 python -m pip install nfv_tree
 Collecting nfv_tree
-  Using cached nfv_tree-0.7.tar.gz
+  Using cached nfv_tree-0.8.tar.gz
 Installing collected packages: nfv-tree
   Running setup.py install for nfv-tree ... done
-Successfully installed nfv-tree-0.7
+Successfully installed nfv-tree-0.8
 ```
 
 ### Usage

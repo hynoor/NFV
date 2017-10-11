@@ -62,7 +62,7 @@ class NfvTree:
             '_iotactic',
     )
 
-    def __init__(self, tree_root=None, tree_width=1, tree_depth=1, dir_length=8):
+    def __init__(self, tree_root=None, tree_width=1, tree_depth=1, dir_length=8, io_tactic=None):
         """ Constructor for instaniating a empty file tree
 
         Each NfvTree object should have a set of attributes as below,
@@ -83,7 +83,10 @@ class NfvTree:
         self._dirs = set()
         self._treesize = 0 
         self._dirlen = 0  
-        self._iotactic = NfvIoTactic()
+        if io_tactic is None:
+            self._iotactic = NfvIoTactic()
+        else:
+            self._iotactic = io_tactic
 
         if tree_root is None:
             raise ValueError("ERROR: Paramter tree_root is required!")
@@ -248,7 +251,7 @@ class NfvTree:
         deltanum = abs(file_number - len(self._files))
 
         if file_number > len(self._files):
-            self.create_file(number=deltanum, size=file_size)
+            self.create_file(number=deltanum, size=file_size, io_tactic=self._iotactic)
         if file_number < len(self._files):
             self.remove_file(number=deltanum)
 
@@ -464,19 +467,19 @@ class NfvFile:
             rindex = next(indexsupplier)
         with open(self._path, openmode) as fh:
             if remainder > 0 and self._iotactic._seek == 'reverse':
-                data = self._iotactic.get_data()
+                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(rindex)
                 fh.write(data[:remainder])
             for idx in indexsupplier:
-                data = self._iotactic.get_data()
+                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(idx)
                 fh.write(data)
             if remainder > 0 and (self._iotactic._seek == 'sequencial' or self._iotactic._seek == 'random'):
-                data = self._iotactic.get_data()
+                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(rindex)
@@ -735,8 +738,9 @@ class NfvIoTactic:
     )
 
     _seeks = ('sequencial', 'random', 'reverse')
-    _patterns = ('fixed', 'random')
+    _patterns = ('fixed', 'random', 'bit', 'hex')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
+
 
     def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', data_check=True):
         """ NfvIoTactic constructor
@@ -756,12 +760,16 @@ class NfvIoTactic:
         self._iosize = convert_size(io_size)
         self._datapattern = data_pattern
         self._seek = seek_type
-        self._data = None
+        self._data = bytes()
         self._datacheck = data_check
         if self._datapattern == 'random':
-            self.random_pattern()
+            self.set_data_pattern(self.random_pattern(io_size=self._iosize))
         elif self._datapattern == 'fixed':
-            self.fixed_pattern()
+            self.set_data_pattern(self.fixed_pattern(io_size=self._iosize))
+        elif self._datapattern == 'bit':
+            self.set_data_pattern(self.bit_pattern(io_size=self._iosize))
+        elif self._datapattern == 'hex':
+            self.set_data_pattern(self.hex_pattern(io_size=self._iosize))
             
 
     def set_property(self, attrs={}):
@@ -810,42 +818,177 @@ class NfvIoTactic:
             raise Exception("Given property name not found")
 
 
-    def get_data(self):
-        """ renew and fetch data feed for each I/O 
-
-        :return : *none*
+    def set_data_pattern(self, data=None):
+        """ set data feed for each I/O 
+        :param data: data to be set 
+        :return    : *none*
         """
-        if self._datapattern == 'random':
-            self.random_pattern()
-        elif self._datapattern == 'fixed':
-            # every time it'll renew a fixed data
-            # this should be a place needs to be enhanced
-            self.fixed_pattern()
+        if data is None:
+            raise ValueError("ERROR: parameter data is required!")
+        self._data = data
+        self._iosize = len(self._data)
 
         return self._data
 
 
-    def random_pattern(self):
-        """ renew self._data with random data pattern
+    def get_data_pattern(self):
+        """ get data feed for each I/O 
+
         :return : *none*
         """
-        self._data = self.get_rand_buffer(self._iosize, self._datagranary)
+        if self._datapattern == 'random':
+            self._data = NfvIoTactic.random_pattern(io_size=self._iosize)
+
+        return self._data
 
 
-    def fixed_pattern(self, pattern=None):
-        """ renew the fixed pattern
+    def clear_data_pattern(self):
+        """ clear data
+
         :return : *none*
         """
-        tmpbytes = bytes('This is a string used for NFV testing', encoding='utf_8')
-        if pattern is not None:
-            tmpbytes = bytes(pattern, encoding='utf_8')
+        self._data = None
 
-        if len(tmpbytes) >= self._iosize:
-            self._data = tmpbytes[:self._iosize]
+
+    @staticmethod 
+    def hex_pattern(hex_value='00', io_size=None):
+        """ renew self._data with hex data pattern
+
+        :return : data pattern generated
+        """
+        if io_size is None:
+            raise ValueError("ERROR: parameter io_size is required!")
         else:
-            number = self._iosize // len(tmpbytes)  
-            remainder = tmpbytes[:self._iosize % len(tmpbytes)]
-            self._data = tmpbytes * number + remainder 
+            iosize = int(convert_size(io_size))
+        tmpbytes = bytes.fromhex(hex_value)
+        numchunk = iosize // len(tmpbytes)
+        rmdchunk = iosize % len(tmpbytes)
+
+        return tmpbytes * numchunk + tmpbytes[:rmdchunk]
+
+
+    @staticmethod 
+    def random_pattern(io_size='8k'):
+        """ renew self._data with random data pattern
+
+        :return : data pattern generated
+        """
+        iosize = int(convert_size(io_size))
+
+        return NfvIoTactic.get_rand_buffer(iosize, NfvIoTactic._datagranary)
+
+
+
+    @staticmethod 
+    def fixed_pattern(pattern=None, io_size='8k'):
+        """ renew the fixed pattern
+
+        generate a data with fixed data pattern 
+        :return : data pattern in bytes
+        """
+        iosize = int(io_size)
+
+        tmpbytes = bytes('content of data pattern is not important', encoding='utf-8')
+        if pattern is not None:
+            tmpbytes = bytes(tmpbytes, encoding='utf-8')
+
+        if len(tmpbytes) >= iosize:
+            return tmpbytes[:iosize]
+        else:
+            number = iosize // len(tmpbytes)  
+            remainder = tmpbytes[:iosize % len(tmpbytes)]
+            return tmpbytes * number + remainder 
+
+
+    @staticmethod 
+    def bit_pattern(bits='00000000', io_size='8k'):
+        """ renew the data pattern with bit mode
+
+        it supports 8 bits customization
+        :param bin_str  : binary string to be converted
+        :return         : data in bytes
+        """
+        iosize = int(convert_size(io_size))
+
+        tmpbytes = NfvIoTactic.bits2byte(bits)
+        numchunk = iosize // len(tmpbytes)
+        remainderchunk = iosize % len(tmpbytes)
+
+        return tmpbytes * numchunk + tmpbytes[:remainderchunk] 
+
+
+    @staticmethod 
+    def compress_pattern(pattern='0', compress_ratio=50, io_size='8k', chunk=1):
+        """ generate the compressible data pattern 
+
+        parameter pattern accepts the compressible data pattern for
+        assembling the chunk while compress_ratio defines it proportion 
+        :param pattern        : data pattern for compressible chunk
+        :param compress_ratio : the proportion of compressible data
+        :param io_size        : size of data pattern to be generated
+        :param num_chunk      : number of compressible chunks of data pattern
+        :return               : a compressible data pattern composed of chunks
+        """
+        iosize = int(convert_size(io_size))
+       
+        chunksize = iosize // chunk
+        if chunksize < 1024:
+            raise ValueError("ERROR: size of chunk is too small to build compressible data properly")
+
+        csize = int(chunksize*(float(compress_ratio)/float(100)))
+        usize = chunksize - csize
+
+        # build chunk 
+        uchunk = NfvIoTactic.get_rand_buffer(usize, NfvIoTactic._datagranary)
+        tmpchunk = bytes(pattern, 'utf-8')
+        numtmpchunk = csize // len(tmpchunk) 
+        rmdtmpchunk = csize % len(tmpchunk)
+        cchunk = tmpchunk * numtmpchunk + tmpchunk[:rmdtmpchunk]
+
+        return (uchunk + cchunk) * chunk 
+
+
+    @staticmethod 
+    def bits2byte(binary='00000000'):
+        """ this method is to converted binary string to hex number
+
+        :param bin_str  : binary string to be converted
+        :return         : hex number
+        """
+        binstr = binary
+        hexres = ''
+        if len(binstr) < 8:
+            binstr = (8 - len(binstr)) * '0' + binstr
+        if len(binstr) > 8:
+            binstr = binstr[0:8]
+        if int('0b' + binstr, 2) < 16:
+           hexstr = hex(int('0b'+binstr, 2)).replace('0x', '0')
+
+        else:
+           hexstr = hex(int('0b'+binstr, 2)).replace('0x', '')
+
+        return bytes.fromhex(hexstr)
+
+
+    @staticmethod 
+    def compound_pattern(container=None, pattern_func=None, *args, **kwargs):
+        """ compound a data pattern on top of existing ones
+
+        compound different data patterns into on data pattern
+        :param pattern_func   : function object for generating data pattern
+        :param *args **kwargs : arguments to be passed into pattern function object
+        :return               : data pattern compounded
+        """
+        if container is None:
+            raise ValueError("ERROR: parameter container is required!")
+        if pattern_func is None:
+            raise ValueError("ERROR: parameter pattern_func is required!")
+
+        data = pattern_func(*args, **kwargs)
+
+        container += data
+
+        return container
 
 
     @staticmethod
@@ -1025,7 +1168,7 @@ class NfvLockManager:
         :param lock : lock object to be added to be managed
         :return     : *none*
         """
-        if lock is not NfvLock:
+        if type(lock) is not NfvLock:
             raise ValueError("Given lock is not NfvLock type object!")
         elif lock.isattached:
             raise ValueError("Given lock is attached, unable be added into NfvLockManager object ")
@@ -1044,7 +1187,7 @@ class NfvLockManager:
                      a random lock will be removed
         :return     : NfvLock object was removed 
         """
-        if lock is NfvLock and lock in self._repository:
+        if type(lock) is NfvLock and lock in self._repository:
             if lock.islocked:
                 lock.off() # switch off
             elif lock.isattached():

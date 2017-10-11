@@ -40,7 +40,7 @@ There are 6 primary classes defined in **nfv_tree** module
 > _**NfvLock**_
 > A class represent a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
 
-#### **_Basic File Tree Manipulations_**
+#### **_Sample: Basic File Tree Manipulations_**
  
 ``` python
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
@@ -66,7 +66,7 @@ mytree.set_tactic(iot)
 # overwrite with new i/o tactic
 mytree.overwrite()
 ```
-#### **_Basic File Manipulations_**
+#### **_Sample: File Manipulations_**
 ``` python
 from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
 
@@ -91,7 +91,33 @@ myfile.set_tactic(iot)
 myfile.overwirte()
 ```
 
-#### **_Basic File Lock Manipulations_**
+#### **_Sample: Data Pattern Customization_**
+``` python
+from nfv_tree.nfvtree import NfvTree, NfvFile, NfvIoTactic
+
+# build a compress data pattern with 90% compressible ratio
+dp1 = NfvIoTactic.compress_pattern(comress_ratio=90, io_size='80k', chunk=10)
+
+# build a data pattern with binary zero
+dp2 = NfvIoTactic.hex_pattern(hex_value='0', io_size='10k')
+
+# build a 20KB size data pattern with customized bits like '10000001'  
+dp3 = NfvIoTactic.hex_pattern(bits='10000001', io_size='20k')
+
+# compound all built data pattern together
+dp = dp1 + dp2 + dp3
+
+# initialize a NfvIoTactic object and set the data pattern
+iot = NfvIoTactic()
+iot.set_data_pattern(dp)
+
+# create a file tree then create 100 files with assigned data pattern
+mytree=(tree_root='test_dir\test_tree', io_tactic=iot)
+mytree.tailor(file_number=100, file_size='1M')
+
+```
+
+#### **_Sample: File Lock Manipulations_**
 ``` python
 from nfv_tree.nfvtree import NfvFile, NfvLock, NfvLockManager
 
@@ -121,7 +147,7 @@ for lck in lckmgr:
     
 ```
 
-#### **_Basic ADS Manipulation_**(TBD)
+#### **_Sample: Basic ADS Manipulation_**(TBD)
 
 
 
@@ -186,13 +212,25 @@ for lck in lckmgr:
 
 > NfvIoTactic
 >``` python
->set_property(attrs={})
+>set_property(self, attrs={})
 > 
 >get_property(name=None)
 > 
->random_pattern(self)
+> get_data_pattern(self)
 > 
->fixed_pattern(pattern=None)
+> set_data_pattern(self, data=None)
+> 
+> clear_data_pattern(self)
+> 
+> fixed_pattern(pattern=None, io_size='8k')
+> 
+> random_pattern(io_size='8k')
+> 
+> fixed_pattern(pattern=None, io_size='8k')
+> 
+> hex_pattern(hex_value='00', io_size='8k')
+> 
+> bit_pattern(bits='00000000', io_size='8k')
 >```
 
 

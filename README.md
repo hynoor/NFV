@@ -1,11 +1,15 @@
 
-Network Filesystem Validator (nfv_tree)
+
+
+Network Filesystem Validator (beta version)
 ========================
+
 
 NFV is a module designed to simulate E2E user scenarios based on manipulating file tree, which can be manipulated along with NFS, SMB and even local file systems.
 
 With _nfv_tree_, manipulations regarding network filesystem could be more flexible and programmatic.
 
+- Support both Filesystem and rawdisk(block)
 - Discreional files/directories deployment
 - Manipulating files/diretories with more accessbilities
 - Plaftform-crossed support (Windows and Linux)
@@ -53,6 +57,9 @@ There are 6 primary classes defined in **nfv_tree** module
 > 
 > _**NfvLock**_
 > A class represents a byte range locks, which can be manipulate either independently or managed by NfvLockManager object
+> 
+> _**NfvLun**_ (To Be Implmented)
+> A class represent raw disk, which can be exercised by attaching a NfvIoTactic object
 
 #### **_Sample: Basic File Tree Manipulations_**
  

@@ -182,9 +182,9 @@ class NfvTree:
         """
         if type(io_tactic) is not NfvIoTactic:
             raise ValueError("ERROR: Given parameter tactic is not NfvIoTactic object!")
-        self._iotactic = tactic
+        self._iotactic = io_tactic
         for f in self._files:
-            f.set_tactic(tactic)
+            f.set_tactic(io_tactic)
     
     def remove_file(self, number=1):
         """ remove files from tree randomly
@@ -414,11 +414,9 @@ class NfvFile:
     __slots__ = (
             '_path', 
             '_size', 
-            '_inode', 
             '_dir', 
             '_name', 
             '_checksum', 
-            '_uid', 
             '_iotactic', 
             '_adsstreams',
             '_lockmgr',
@@ -545,7 +543,7 @@ class NfvFile:
         """
         if io_tactic is None:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
-        self._iotactic = tactic
+        self._iotactic = io_tactic
 
 
     def truncate(self, size=None):   
@@ -829,8 +827,6 @@ class NfvIoTactic:
         self._data = data
         self._iosize = len(self._data)
 
-        return self._data
-
 
     def get_data_pattern(self):
         """ get data feed for each I/O 
@@ -919,7 +915,7 @@ class NfvIoTactic:
 
 
     @staticmethod 
-    def compress_pattern(pattern='0', compress_ratio=50, io_size='8k', chunk=1):
+    def compress_pattern(pattern='abc', compress_ratio=50, io_size='8k', chunk=1):
         """ generate the compressible data pattern 
 
         parameter pattern accepts the compressible data pattern for

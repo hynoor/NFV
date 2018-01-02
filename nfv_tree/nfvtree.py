@@ -31,6 +31,12 @@ import sys
 import re
 import copy
 
+import time
+import logging
+import hashlib
+import string
+
+from random import Random
 from shutil import copyfile, move, rmtree
 from hashlib import md5
 from random import randint, shuffle
@@ -83,6 +89,7 @@ class NfvTree:
         self._dirs = set()
         self._treesize = 0 
         self._dirlen = 0  
+
         if io_tactic is None:
             self._iotactic = NfvIoTactic()
         else:
@@ -185,6 +192,7 @@ class NfvTree:
         self._iotactic = io_tactic
         for f in self._files:
             f.set_tactic(io_tactic)
+
     
     def remove_file(self, number=1):
         """ remove files from tree randomly
@@ -734,6 +742,7 @@ class NfvIoTactic:
             '_property', 
             '_data', 
             '_datacheck'
+            '_ioregions',
     )
 
     _seeks = ('sequencial', 'random', 'reverse')
@@ -741,7 +750,7 @@ class NfvIoTactic:
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
 
-    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', data_check=True):
+    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', data_check=True, io_regions=[[0,0]]):
         """ NfvIoTactic constructor
 
         :param io_size      : io size of tactic to be adopted
@@ -760,6 +769,7 @@ class NfvIoTactic:
         self._datapattern = data_pattern
         self._seek = seek_type
         self._data = bytes()
+        self._ioregions = io_regions[:]
         self._datacheck = data_check
         if self._datapattern == 'random':
             self.set_data_pattern(self.random_pattern(io_size=self._iosize))
@@ -1567,27 +1577,24 @@ class NfvLock:
         length = self._length
         data = self._data
 
-        try:
-            if data:
-                if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
-                    fh.seek(offset)
-                    msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
-                    # need to truncate extra content which exceeds end offset
-                    fh.write(data)
-                elif mode == 'shared' or mode == 'unlock':
-                    fh.seek(offset)
-                    readdata = fh.read(length) 
-                    if fh.read(length) != data:
-                        raise IOError("Data verification failed. expect:\
-                                %s | actual: %s" % (data, readdata))
-                    fh.seek(offset)
+        if data:
+            if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
+                fh.seek(offset)
                 msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
-            else:
-                self._filehandle.seek(offset)  # this will change the position to offset
-                msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
+                # need to truncate extra content which exceeds end offset
+                fh.write(data)
+            elif mode == 'shared' or mode == 'unlock':
+                fh.seek(offset)
+                readdata = fh.read(length) 
+                if fh.read(length) != data:
+                    raise IOError("Data verification failed. expect:\
+                            %s | actual: %s" % (data, readdata))
+                fh.seek(offset)
+            msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
+        else:
+            self._filehandle.seek(offset)  # this will change the position to offset
+            msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
 
-        except Exception as e:
-            raise Exception(e)
    
 
     def _posix_lock(self, lock_mode='exclusive'):
@@ -1601,110 +1608,33 @@ class NfvLock:
         fh = self._filehandle
         mode = lock_mode
         data = self._data
-        lockdata = struct.pack('hhllhh', self._LOCK_MODES[mode][1], 0, self._startoffset, self._length, 0, 0)
-        try:
-            if self._data:
-                if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
-                    rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
-                    fh.seek(offset)
-                    # truncate extra content which exceeds end offest
-                    fh.write(data)
-                elif mode == 'shared' or mode == 'unlock':
-                    # NOTE
-                    # the minimal size of kernel read is one page (4KB)
-                    # hence the read may failed if target bytes
-                    # which page was overlappped on other byte(s)
-                    # owned by other lockowners
-                    fh.seek(offset)
-                    readdata = fh.read(len(self._data))
-                    if readdata != data:
-                        sys.exit("ERROR: data verification failed. expect: %s | actual: %s" % (data, readdata))
+        lockdata = struct.pack('hhllhh', self._LOCK_MODES[mode][1], \
+                0, self._startoffset, self._length, 0, 0)
+
+        if self._data:
+            if mode == 'exclusive_io' or mode == 'exclusive_blk_io':
                 rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
-            else:
-                rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
-        except Exception as e:
-            raise Exception(e)
+                fh.seek(offset)
+                # truncate extra content which exceeds end offest
+                fh.write(data)
+            elif mode == 'shared' or mode == 'unlock':
+                # NOTE
+                # the minimal size of kernel read is one page (4KB)
+                # hence the read may failed if target bytes
+                # which page was overlappped on other byte(s)
+                # owned by other lockowners
+                fh.seek(offset)
+                readdata = fh.read(len(self._data))
+                if readdata != data:
+                    sys.exit("ERROR: data verification failed. expect: %s | actual: %s" % (data, readdata))
+            rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
+        else:
+            rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
 
 
 
-""" utils class
+""" utils
 """
-
-import time
-import logging
-import hashlib
-import string
-from random import Random
-
-
-class MyLogger:
-    """ MyLogger Class
-    Customerised logger class based upon python standard libarary logging.Logger
-    """
-    LOG_LEVELS = {
-        'INFO'     : logging.INFO,
-        'WARNING'  : logging.WARNING,
-        'CRITICAL' : logging.CRITICAL,
-        'DEBUG'    : logging.DEBUG,
-    }
-
-    def __init__(self, logger_name=__name__, 
-                 record_path=__name__, log_level='INFO'):
-        """
-        init definition
-        :param self        : self object
-        :param logger_name : name of logger
-        :param record_path : file path used to store log files
-        :param log_level   : log level, on of ['INFO', 'WARN', 'DEBUG', 'ERROR']
-        """ 
-         
-        if log_level not in self.LOG_LEVELS:
-            sys.exit("parameter log_level is invalid")  
-       
-        if not exists(record_path):
-            os.makedirs(record_path)
-
-        self.__recordpath__ = record_path + '_' + str(time.time())
-
-        self.__loggername__ = logger_name
-        self.__loglevel__ = log_level
-       
-        self.__logger__ = logging.getLogger(logger_name)
-        self.__logger__.setLevel(self.LOG_LEVELS[log_level])
-
-        # create a logging format
-        formatter = logging.Formatter(
-            '%(asctime)s - %(process)s - %(levelname)s:  %(message)s'
-        )
-
-        # create a file handlers
-        self.__recordhandler__ = logging.FileHandler(self.__recordpath__)
-        self.__recordhandler__.setLevel(self.LOG_LEVELS[log_level])
-        self.__consolehandler__ = logging.StreamHandler()
-        self.__consolehandler__.setFormatter(formatter)
-
-        # add the handlers to the logger
-        self.__recordhandler__.setFormatter(formatter)
-        self.__logger__.addHandler(self.__recordhandler__)
-        self.__logger__.addHandler(self.__consolehandler__)
-    
- 
-    def get_logger(self): 
-        return self.__logger__
-
-
-    def update_logger(self, log_level=None):
-        """" Update logger, for now only log level need to be udpated
-        :param log_level  : level to be updated to 
-        :return           : None
-        """
-        if log_level is None:
-            return
-
-        self.__recordhandler__.setLevel(self.LOG_LEVELS[log_level])
-        self.__consolehandler__.setLevel(self.LOG_LEVELS[log_level])
-
-
 def random_string(size=8, seed=None):
     """ generate a random string
     :param size : length of target string to be generated
@@ -1726,7 +1656,6 @@ def random_string(size=8, seed=None):
         randomstring += chars[offset]
 
     return randomstring
-
 
 
 def convert_size(raw_size):
@@ -1767,7 +1696,7 @@ def encipher_data(data=None, store=None):
     """
     if data is None:
         raise  ValueError("Parameter data is required")
-    # using 'sha' result as unique db key to reduce the hosts' memory consumption
+    # using md5 result as unique db key to reduce the hosts' memory consumption
     hashmd5 = hashlib.md5()
     hashmd5.update(data)
     datacks = hashmd5.digest()
@@ -1847,3 +1776,4 @@ def string_to_list(string=None):
         else:
             finalres.append(r)
     return finalres
+

@@ -35,7 +35,7 @@ from shutil import copyfile, move, rmtree
 from hashlib import md5
 from random import randint, shuffle
 from os import path, makedirs, listdir, walk, remove
-from os.path import isfile, exists, getsize, exists, join, getsize, split
+from os.path import isfile, isdir, exists, getsize, exists, join, getsize, split
 from collections import defaultdict
 from itertools import cycle
 
@@ -62,7 +62,7 @@ class NfvTree:
             '_iotactic',
     )
 
-    def __init__(self, tree_root=None, tree_width=1, tree_depth=1, dir_length=8, io_tactic=None):
+    def __init__(self, tree_root=None, tree_width=0, tree_depth=0, dir_length=8, io_tactic=None):
         """ Constructor for instaniating a empty file tree
 
         Each NfvTree object should have a set of attributes as below,
@@ -76,7 +76,13 @@ class NfvTree:
         :param dir_length : the length of a sub folder name
         :return           : NfvTree object
         """
+        if tree_root is None:
+            raise ValueError("ERROR: Paramter tree_root is required!")
         self._root = tree_root
+        if tree_width <= 0:
+            tree_depth = 0
+        elif tree_width > 0 and tree_depth <= 0:
+            tree_depth = 1
         self._width = tree_width
         self._depth = tree_depth
         self._files = set()
@@ -88,15 +94,13 @@ class NfvTree:
         else:
             self._iotactic = io_tactic
 
-        if tree_root is None:
-            raise ValueError("ERROR: Paramter tree_root is required!")
         if exists(tree_root):
             self.load_tree(self._root)
         else:
             self.new(self._root, self._width, self._depth)
 
 
-    def new(self, dir=None, tree_width=1, tree_depth=1):
+    def new(self, dir=None, tree_width=0, tree_depth=0):
         """ initialize a tree object
         
         this function will be called for creating a new file tree
@@ -106,13 +110,16 @@ class NfvTree:
         """
         width = tree_width
         depth = tree_depth
-
+        # create tree root first
+        if not exists(dir):
+            makedirs(dir)
+            self._dirs.add(dir)
         for _ in range(width):
             entry = join(dir, random_string(8))
             makedirs(entry)
             self._dirs.add(entry)
 
-        if depth > 0:
+        if depth > 1:
             for d in listdir(dir):
                 self.new(dir=join(dir, d), tree_width=width, tree_depth=depth-1)
 
@@ -154,16 +161,37 @@ class NfvTree:
         :param tree_root : root path of file tree
         :return          : NfvTree object
         """
+
         if not exists(tree_root):
             raise Exception("Given dir %s doesn't exist!" % tree_root)
-
-        for dirpath, dirs, files in walk(tree_root):
+        else:
+            self._dirs.add(tree_root)
+        treedepth = 0
+        treewidth = 0
+        path = os.path.normpath(tree_root)
+        for dirpath, dirs, files in walk(tree_root, topdown=True):
             for filename in files:
                 fullname = join(dirpath, filename)
                 self._files.add(NfvFile(path=fullname))
             for dirname in dirs:
                 self._dirs.add(join(dirpath, dirname))
+        treelistgen = (f for f in listdir(tree_root) if isdir(join(tree_root, f)))
+        for _ in treelistgen:
+            treewidth += 1
+        # recursively dive into immedia left child   
+        # this strategy only works when the existing tree is standard NfvTree structure
+        def dive_dir(dir=None):
+            subdirs = [f for f in listdir(dir) if isdir(join(dir, f))]
+            while len(subdirs):
+                yield
+                dir = join(dir, subdirs[0])
+                subdirs = [f for f in listdir(dir) if isdir(join(dir, f))]
 
+        divegen = dive_dir(dir=tree_root)
+        for _ in divegen:
+            treedepth += 1
+        self._width=treewidth
+        self._depth=treedepth
         # initialize io tactic
         for f in self._files:
             f.set_tactic(self._iotactic)

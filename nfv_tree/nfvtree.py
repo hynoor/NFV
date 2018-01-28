@@ -14,8 +14,8 @@ NOTEs:
 Layout of demo file tree:
 
                     tree_root
-                        |
-           ------------4dwszki(dir)--------------------------------------------------
+                          |
+           --------------------------------------------------------------------------
            |                        |                   |                           |
 --------xyuse34(dir)-----           --t4fk2s(dir)---    ------45dwwf(dir)-----  5dfeu7f    
 |      |            |               |         |    |                 |
@@ -1020,9 +1020,7 @@ class NfvIoTactic:
             raise ValueError("ERROR: parameter pattern_func is required!")
 
         data = pattern_func(*args, **kwargs)
-
         container += data
-
         return container
 
 

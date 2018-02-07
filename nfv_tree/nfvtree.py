@@ -769,7 +769,7 @@ class NfvIoTactic:
             '_seek', 
             '_property', 
             '_data', 
-            '_datacheck'
+            '_datacheck',
             '_ioregions',
     )
 
@@ -987,8 +987,8 @@ class NfvIoTactic:
     def bits2byte(binary='00000000'):
         """ this method is to converted binary string to hex number
 
-        :param bin_str  : binary string to be converted
-        :return         : hex number
+        :param bin_str : binary string to be converted
+        :return        : hex number
         """
         binstr = binary
         hexres = ''
@@ -1073,10 +1073,10 @@ class NfvIoTactic:
             for idx in range(numwrite, 0, -1):
                 yield ((idx*self._iosize) - self._iosize)
         elif self._seek == 'random':
-            # one million rought use 20MB memory
+            # one million roughly use 20MB memory
             # it's not the fully random algorithm
-            # while the number of I/O beyound a million
-            # accroding to trial, 'random' mode could be 
+            # while the number of I/O beyond a million
+            # according to trial, 'random' mode could be
             # up to 3x slower then 'seq'
             million = 1000 * 1000
             numslice = numwrite // million 
@@ -1689,28 +1689,28 @@ def convert_size(raw_size):
     param raw_size  : passed raw size
     return          : size in byte
     """
-    rawsize = raw_size
-    sm = re.search('^(\d+)(b|B|k|K|m|M|g|G|t|T|p)?', str(rawsize))
+    rawsize = raw_size.lower()
+    sm = re.search('^(\d+)(b|k|m|g|t|p)?', str(rawsize))
     if sm:
         number = sm.group(1)
         if sm.group(2):
             unit = sm.group(2)
-            if unit.upper() == 'B':
+            if unit == 'b':
                 return number
-            elif unit.upper() == 'K':
+            elif unit == 'k':
                 return int(number) * 1024
-            elif unit.upper() == 'M':
+            elif unit == 'm':
                 return int(number) * 1024 * 1024
-            elif unit.upper() == 'G':
+            elif unit == 'm':
                 return int(number) * 1024 * 1024 * 1024
-            elif unit.upper() == 'T':
+            elif unit == 'm':
                 return int(number) * 1024 * 1024 * 1024 * 1024
-            elif unit.upper() == 'P':
+            elif unit == 'm':
                 return int(number) * 1024 * 1024 * 1024 * 1024 * 1024
             else:
                 sys.exit("Invalid unit: %s" % unit)
         else:
-            return int(number )
+            return int(number)
     else:
         sys.exit("ERROR: Passed size is malformed!")
 

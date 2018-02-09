@@ -1077,7 +1077,7 @@ class NfvIoTactic:
             # it's not the fully random algorithm
             # while the number of I/O beyond a million
             # according to trial, 'random' mode could be
-            # up to 3x slower then 'seq'
+            # up to 3x slower than 'seq'
             million = 1000 * 1000
             numslice = numwrite // million 
             remainder = numwrite % million
@@ -1689,8 +1689,8 @@ def convert_size(raw_size):
     param raw_size  : passed raw size
     return          : size in byte
     """
-    rawsize = raw_size.lower()
-    sm = re.search('^(\d+)(b|k|m|g|t|p)?', str(rawsize))
+    rawsize = str(raw_size).lower()
+    sm = re.search('^(\d+)(b|k|m|g|t|p)?', rawsize)
     if sm:
         number = sm.group(1)
         if sm.group(2):

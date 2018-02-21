@@ -1631,11 +1631,11 @@ def convert_size(raw_size):
                 return int(number) * 1024
             elif unit == 'm':
                 return int(number) * 1024 * 1024
-            elif unit == 'm':
+            elif unit == 'g':
                 return int(number) * 1024 * 1024 * 1024
-            elif unit == 'm':
+            elif unit == 't':
                 return int(number) * 1024 * 1024 * 1024 * 1024
-            elif unit == 'm':
+            elif unit == 'p':
                 return int(number) * 1024 * 1024 * 1024 * 1024 * 1024
             else:
                 sys.exit("Invalid unit: %s" % unit)

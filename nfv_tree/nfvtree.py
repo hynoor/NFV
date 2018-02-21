@@ -46,7 +46,6 @@ from collections import defaultdict
 from itertools import cycle
 
 
-
 class NfvTree:
     """ Defines a tree structure like data structure and related methods
 
@@ -106,7 +105,6 @@ class NfvTree:
         else:
             self.new(self._root, self._width, self._depth)
 
-
     def new(self, dir=None, tree_width=0, tree_depth=0):
         """ initialize a tree object
         
@@ -130,7 +128,6 @@ class NfvTree:
             for d in listdir(dir):
                 self.new(dir=join(dir, d), tree_width=width, tree_depth=depth-1)
 
-
     def update(self):
         """ update some fundamental attributes of file tree
         
@@ -140,7 +137,6 @@ class NfvTree:
         for f in self._files:
             self._treesize += f.get_property('size')
         
-
     def create_file(self, size='8K', number=1, io_tactic=None):
         """ create file(s) with given io tactic 
         
@@ -157,7 +153,6 @@ class NfvTree:
             self._files.add(NfvFile(path=join(dir, random_string(8)), size=size, io_tactic=self._iotactic))
         
         self.update()
-
 
     def load_tree(self, tree_root=None):
         """ load an existing on-disk file tree into memory
@@ -187,6 +182,7 @@ class NfvTree:
             treewidth += 1
         # recursively dive into immedia left child   
         # this strategy only works when the existing tree is standard NfvTree structure
+
         def dive_dir(dir=None):
             subdirs = [f for f in listdir(dir) if isdir(join(dir, f))]
             while len(subdirs):
@@ -205,7 +201,6 @@ class NfvTree:
 
         self.update()
 
-
     def set_tactic(self, io_tactic=None):
         """ set io tactic for the file tree
 
@@ -221,7 +216,6 @@ class NfvTree:
         for f in self._files:
             f.set_tactic(io_tactic)
 
-    
     def remove_file(self, number=1):
         """ remove files from tree randomly
         
@@ -241,7 +235,6 @@ class NfvTree:
                 else:
                     raise Exception(e)
         self.update()
-
 
     def get_property(self, name=None):
         """ get the value of given property
@@ -268,7 +261,6 @@ class NfvTree:
         else:
             raise Exception("Given property name not found")
     
-
     def tailor(self, file_number=None, file_size='8k'):
         """ tailor the total number of files within file tree
 
@@ -293,8 +285,7 @@ class NfvTree:
 
         self.update()
 
-
-    def truncate(self, target_size=None):   
+    def truncate(self, target_size=None):
         """ truncate the on-disk file tree to specific size
 
         :param target_size : size of each file to be truncated to
@@ -310,7 +301,6 @@ class NfvTree:
         
         self.update()
 
-
     def append(self, delta=None):
         """ append the on-disk file tree
 
@@ -320,7 +310,6 @@ class NfvTree:
         :return     : *none*
         """
         pass
-
 
     def copy(self, dest_tree=None, name_length=8, name_seed=None):
         """ copy the on-disk files within tree to another path
@@ -354,7 +343,6 @@ class NfvTree:
             self.update()
             return  desttree
 
-
     def rename(self, name_seed=None, name_length=8):
         """ rename all on-disk file within file tree
 
@@ -367,7 +355,6 @@ class NfvTree:
         
         self.update()
 
-
     def checksum(self):
         """ checksum all the on-disk files within file tree
 
@@ -375,7 +362,6 @@ class NfvTree:
         """
         for f in self._files:
             f.checksum()
-
 
     def overwrite(self):
         """ overwrite the on-disk file tree
@@ -389,7 +375,6 @@ class NfvTree:
             f.set_tactic(self._iotactic)
             f.overwrite()
 
-
     def read(self):
         """ read the data of on-disk file
 
@@ -401,7 +386,6 @@ class NfvTree:
         for f in self._files:
             f.read()
     
-
     def clear_file(self):
         """ clear all on-disk files within tree
 
@@ -417,7 +401,6 @@ class NfvTree:
             else:
                 raise KeyError(e)
 
-
     def wipe(self):
         """ wipe the entire tree and including its containing files
 
@@ -432,7 +415,6 @@ class NfvTree:
 
         del self
   
-
     def __iter__(self):
         """ iterator implemention
 
@@ -484,7 +466,6 @@ class NfvFile:
         else:
             self.load_file(path)
 
-
     def new(self, open_mode='create'):
         """ craete a NfvFile on-disk file object
         :return : *none*
@@ -522,7 +503,6 @@ class NfvFile:
         if self._iotactic._datacheck:
             self._verify_file()
    
-
     def _verify_file(self):
         """ verfiy the data of on-disk file (do not use it directly on a NfvFile object)
         :return : *none*
@@ -538,7 +518,6 @@ class NfvFile:
         # rest db to release resource 
         NfvFile._io_check_db = {}
 
-
     def load_file(self, path):
         """ load an existing on-disk file and initialize a NfvFile object
 
@@ -548,7 +527,6 @@ class NfvFile:
         self._size = getsize(path) 
         self._dir, self._name = os.path.split(path)
 
-  
     def get_property(self, name=None):
         """ get the value of given property
 
@@ -570,7 +548,6 @@ class NfvFile:
         else:
             raise Exception("Given property name not found")
 
-
     def set_tactic(self, io_tactic=None):
         """ set the tactic for file I/O manipulations
 
@@ -581,8 +558,7 @@ class NfvFile:
             raise ValueError("ERROR: parameter io_tactic must be a NfvIoTactic object!")
         self._iotactic = io_tactic
 
-
-    def truncate(self, size=None):   
+    def truncate(self, size=None):
         """ truncate the on-disk to specific size
 
         :param size : size to be truncated to
@@ -596,7 +572,6 @@ class NfvFile:
                 fh.truncate(size)
 
         self._size = getsize(self._path) 
-
 
     def copy(self, dest_path=None, name_length=8, name_seed=None):
         """ copy the on-disk file to another path
@@ -616,7 +591,6 @@ class NfvFile:
            
         return cfile
 
-
     def rename(self, name_length=8, name_seed=None):
         """ move on-disk file to another path
 
@@ -631,7 +605,6 @@ class NfvFile:
         except Exception as e:
             raise Exception(e)
 
-
     def overwrite(self):
         """ overwrite the on-disk file
 
@@ -641,7 +614,6 @@ class NfvFile:
         # update checksum
         if self._checksum is not None:
             self.checksum()
-
 
     def read(self):
         """ read the data of on-disk file
@@ -666,7 +638,6 @@ class NfvFile:
                 fh.seek(rindex)
                 fh.read(remainder)
 
-   
     def checksum(self, chunk_size=4096):
         """ checksum the data of on-disk file
         
@@ -684,7 +655,6 @@ class NfvFile:
         self._checksum = hashmd5.hexdigest()
         return self._checksum
 
-  
     def remove(self):
         """ remove the ondisk file
 
@@ -697,8 +667,6 @@ class NfvFile:
         
         del self
 
-
-    # ADS
     def create_ads(self, streams=None, size='8k'):
         """ create one or more ads stream
 
@@ -713,7 +681,6 @@ class NfvFile:
         for s in streamlist:
             stream = NfvAdsStream(path=self._path + ":" + s, size=size, io_tactic=self._iotactic)
             self._adsstreams[s] = stream
-
 
     def overwrite_ads(self, streams=None, size='8k'):
         """ overwrite ads streams
@@ -731,7 +698,6 @@ class NfvFile:
             if n in streamlist:
                 o.overwrite() 
         
-            
     def remove_ads(self, streams=None):
         """ overwrite ads streams
 
@@ -777,8 +743,8 @@ class NfvIoTactic:
     _patterns = ('fixed', 'random', 'bit', 'hex')
     _datagranary = os.urandom(1048576)  # 1MB size data granary for random data pattern
 
-
-    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', data_check=True, io_regions=[[0,0]]):
+    def __init__(self, io_size='8k', data_pattern='fixed', seek_type='sequencial', \
+                 data_check=True, io_regions=[[0,0]]):
         """ NfvIoTactic constructor
 
         :param io_size      : io size of tactic to be adopted
@@ -808,7 +774,6 @@ class NfvIoTactic:
         elif self._datapattern == 'hex':
             self.set_data_pattern(self.hex_pattern(io_size=self._iosize))
             
-
     def set_property(self, attrs={}):
         """ set given properties
 
@@ -833,7 +798,6 @@ class NfvIoTactic:
 
         self._iosize = convert_size(self._iosize)
 
-
     def get_property(self, name=None):
         """ get the value of given property
 
@@ -854,7 +818,6 @@ class NfvIoTactic:
         else:
             raise Exception("Given property name not found")
 
-
     def set_data_pattern(self, data=None):
         """ set data feed for each I/O 
         :param data: data to be set 
@@ -864,7 +827,6 @@ class NfvIoTactic:
             raise ValueError("ERROR: parameter data is required!")
         self._data = data
         self._iosize = len(self._data)
-
 
     def get_data_pattern(self):
         """ get data feed for each I/O 
@@ -876,7 +838,6 @@ class NfvIoTactic:
 
         return self._data
 
-
     def clear_data_pattern(self):
         """ clear data
 
@@ -884,8 +845,7 @@ class NfvIoTactic:
         """
         self._data = None
 
-
-    @staticmethod 
+    @staticmethod
     def hex_pattern(hex_value='00', io_size=None):
         """ renew self._data with hex data pattern
 
@@ -901,8 +861,7 @@ class NfvIoTactic:
 
         return tmpbytes * numchunk + tmpbytes[:rmdchunk]
 
-
-    @staticmethod 
+    @staticmethod
     def random_pattern(io_size='8k'):
         """ renew self._data with random data pattern
 
@@ -912,9 +871,7 @@ class NfvIoTactic:
 
         return NfvIoTactic.get_rand_buffer(iosize, NfvIoTactic._datagranary)
 
-
-
-    @staticmethod 
+    @staticmethod
     def fixed_pattern(pattern=None, io_size='8k'):
         """ renew the fixed pattern
 
@@ -934,7 +891,6 @@ class NfvIoTactic:
             remainder = tmpbytes[:iosize % len(tmpbytes)]
             return tmpbytes * number + remainder 
 
-
     @staticmethod 
     def bit_pattern(bits='00000000', io_size='8k'):
         """ renew the data pattern with bit mode
@@ -951,8 +907,7 @@ class NfvIoTactic:
 
         return tmpbytes * numchunk + tmpbytes[:remainderchunk] 
 
-
-    @staticmethod 
+    @staticmethod
     def compress_pattern(pattern='abc', compress_ratio=50, io_size='8k', chunk=1):
         """ generate the compressible data pattern 
 
@@ -981,7 +936,6 @@ class NfvIoTactic:
         cchunk = tmpchunk * numtmpchunk + tmpchunk[:rmdtmpchunk]
 
         return (uchunk + cchunk) * chunk 
-
 
     @staticmethod 
     def bits2byte(binary='00000000'):
@@ -1049,7 +1003,6 @@ class NfvIoTactic:
                 size-= len(buf)
 
         return ret
-
 
     def seek_to(self, file_size=0):
         """ calculate the index of each write will locates on 
@@ -1211,7 +1164,6 @@ class NfvLockManager:
         if self._isattached:
             lock.attach(self._file)
 
-
     def remove_lock(self, lock=None):
         """ remove a NfvLock object from NfvLockManager repository
 
@@ -1232,7 +1184,6 @@ class NfvLockManager:
         else:
             raise ValueError("Given NfvLock object is invalid!")
 
-
     def attach(self, file=None):
         """ attach lock manager objects to a NfvFile object
 
@@ -1251,7 +1202,6 @@ class NfvLockManager:
 
         self._isattached = True
         
-
     def detach(self):
         """ detach lock manager from a specific file
 
@@ -1265,7 +1215,6 @@ class NfvLockManager:
             for lock in list(self._repository):
                 lock.detach()
 
-    
     def feed_lock(self, start=0, length=1, step=1, end=0, mode='exclusive', data=None):
         """ offer one lock at a time until the file end or user given strategy
 
@@ -1305,7 +1254,6 @@ class NfvLockManager:
             self._repository.add(lock)
             yield lock 
 
-
     def deploy_lock(self, start=0, step=1, length=1, \
             stop=1, mode='exclusive', data=None):
         """ strategically created multiple target locks
@@ -1339,7 +1287,6 @@ class NfvLockManager:
             lock = NfvLock(offset=loc[0], length=loc[1], mode=lockmode, data=data)
             self._repository.add(lock)
 
-
     def locator(self, file_size=0, start=0, lock_length=1, step=1, stop=0):
         """ yield specific location a time the lock to be created on 
 
@@ -1372,7 +1319,6 @@ class NfvLockManager:
             if length + activeoffset <= filesize:
                 yield (activeoffset, length)
 
-
     def wipe_lock(self):
         """ empty all locks from manager
         """
@@ -1384,7 +1330,6 @@ class NfvLockManager:
             del lock
 
         self._repository.clear()
-
 
     def __iter__(self):
         """ iterator implementation
@@ -1435,7 +1380,6 @@ class NfvLock:
     else:
         sys.exit('Unsupported Platform! Only accepts NT and POSIX system.')
 
-
     def __init__(self, offset=0, length=1, mode='shared', data=None):
         """ initialize self object
 
@@ -1474,7 +1418,6 @@ class NfvLock:
             'id'          : self._id,
         }
 
-
     def attach(self, file):
         """ attach self object to a NfvFile object
 
@@ -1494,7 +1437,6 @@ class NfvLock:
         self._filepath = file.get_property('path')
         self._isattached = True
 
-
     def detach(self):
         """ detach
         detach lock from file handle
@@ -1507,7 +1449,6 @@ class NfvLock:
         else:
             raise Exception("Lock is on, can't be detached")
 
-
     def is_attached(self):
        """ check if current lock being attached to a file
 
@@ -1516,7 +1457,6 @@ class NfvLock:
 
        return self._isattached
 
-
     def is_locked(self):
        """ check if current lock's state (on/off)
 
@@ -1524,7 +1464,6 @@ class NfvLock:
        """
 
        return self._islocked
-
 
     def get_property(self, name=None):
         """ get the value of given property
@@ -1539,7 +1478,6 @@ class NfvLock:
             return self._property[name]
         else:
             raise Exception("Given property name not found")
-
 
     def on(self):
         """ switch on the lock
@@ -1561,7 +1499,6 @@ class NfvLock:
 
         self._islocked = True
 
-
     def off(self):
         """ switch off the lock (unlock)
 
@@ -1578,7 +1515,6 @@ class NfvLock:
 
         self._islocked = False 
 
-    
     def wipe(self):
         """ delet current lock object
         """
@@ -1587,7 +1523,6 @@ class NfvLock:
                 self.off()
         else:
             self.detach()
-
 
     def _nt_lock(self, lock_mode='exclusive'):
         """ manipulate NT byte-range lock
@@ -1620,8 +1555,6 @@ class NfvLock:
         else:
             self._filehandle.seek(offset)  # this will change the position to offset
             msvcrt.locking(fh.fileno(), self._LOCK_MODES[mode][1], length)
-
-   
 
     def _posix_lock(self, lock_mode='exclusive'):
         """ create a posix byte-range lock
@@ -1658,9 +1591,6 @@ class NfvLock:
             rv = fcntl.fcntl(fh, self._LOCK_MODES[mode][2], lockdata)
 
 
-
-""" utils
-"""
 def random_string(size=8, seed=None):
     """ generate a random string
     :param size : length of target string to be generated

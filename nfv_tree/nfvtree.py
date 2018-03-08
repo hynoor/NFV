@@ -907,6 +907,14 @@ class NfvIoTactic:
 
         return tmpbytes * numchunk + tmpbytes[:remainderchunk] 
 
+    @property
+    def seek_type(self):
+        """
+        The order of seeking
+        :return: seek type
+        """
+        return self._seek
+
     @staticmethod
     def compress_pattern(pattern='abc', compress_ratio=50, io_size='8k', chunk=1):
         """ generate the compressible data pattern 
@@ -958,7 +966,6 @@ class NfvIoTactic:
 
         return bytes.fromhex(hexstr)
 
-
     @staticmethod 
     def compound_pattern(container=None, pattern_func=None, *args, **kwargs):
         """ compound a data pattern on top of existing ones
@@ -976,7 +983,6 @@ class NfvIoTactic:
         data = pattern_func(*args, **kwargs)
         container += data
         return container
-
 
     @staticmethod
     def get_rand_buffer(size, buffer):
@@ -1004,7 +1010,7 @@ class NfvIoTactic:
 
         return ret
 
-    def seek_to(self, file_size=0):
+    def seek_to(self, start_offset=0, stop_offset=None, file_size=None):
         """ calculate the index of each write will locates on 
 
         this is the fundamental algrithm for seek-type, which support three
@@ -1014,16 +1020,21 @@ class NfvIoTactic:
         :param file_size : file size of target file used to constituted the seek strategy
         :return          : a generate object to supply the indexes
         """
+        if file_size is None:
+            file_size = stop_offset - start_offset
+        if stop_offset is None:
+            raise RuntimeError("ERROR: IO range information is missing")
+
         numwrite = file_size // self._iosize
         remainder = file_size % self._iosize
         modfilesize = numwrite * self._iosize
         if remainder > 0:
             yield (file_size - remainder)
         if self._seek == 'sequencial':
-            for idx in range(0, numwrite):
+            for idx in range(start_offset, numwrite):
                 yield idx * self._iosize
         elif self._seek == 'reverse':
-            for idx in range(numwrite, 0, -1):
+            for idx in range(numwrite, start_offset, -1):
                 yield ((idx*self._iosize) - self._iosize)
         elif self._seek == 'random':
             # one million roughly use 20MB memory
@@ -1036,7 +1047,7 @@ class NfvIoTactic:
             remainder = numwrite % million
             slicegroup = []
             if numslice > 0:
-                for idx in range(0, numwrite, million):
+                for idx in range(start_offset, numwrite, million):
                     slicegroup.append([idx, idx+million])
                 # remove last item is invalid which exceed 'numwrite'
                 slicegroup.pop()
@@ -1063,7 +1074,6 @@ class NfvAdsStream(NfvFile):
     pass
 
 
- 
 """ Code below implements 2 primary classes to manipulating file locks
 
 :class NfvLockManager : a data structure represent managing bunch of file locks
@@ -1630,13 +1640,13 @@ def convert_size(raw_size):
             elif unit == 'k':
                 return int(number) * 1024
             elif unit == 'm':
-                return int(number) * 1024 * 1024
+                return int(number) * 1024 ** 2
             elif unit == 'g':
-                return int(number) * 1024 * 1024 * 1024
+                return int(number) * 1024 ** 3
             elif unit == 't':
-                return int(number) * 1024 * 1024 * 1024 * 1024
+                return int(number) * 1024 ** 4
             elif unit == 'p':
-                return int(number) * 1024 * 1024 * 1024 * 1024 * 1024
+                return int(number) * 1024 ** 5
             else:
                 sys.exit("Invalid unit: %s" % unit)
         else:

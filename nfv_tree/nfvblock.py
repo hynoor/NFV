@@ -43,49 +43,54 @@ class NfvBlock(NfvFile):
 
         self._iotactic = io_tactic
 
-    def write(self, start_offset=0, stop_offset=4096):
+    def io(self, operation='write', start_offset=0, stop_offset=4096):
         """
         Issue IO on the block device
         :return:
         """
         start = start_offset
         stop = stop_offset
+        openmode = 'rb'
         if stop - start > self._size:
             stop = self._size
         if start > self._size:
             raise RuntimeError("ERROR: Start offset should no larger than volume size!")
         io_range = stop - start
+        if operation == 'write':
+            openmode = 'rb+'
+        elif operation == 'read':
+            pass
+        else:
+            raise ValueError("ERROR: Invalid operation!")
         remainder = io_range % self._iotactic.get_property('io_size')
         indexsupplier = self._iotactic.seek_to(start_offset=start, stop_offset=stop)
         if remainder > 0:
             rindex = next(indexsupplier)
 
-        with open(self._path, 'rb+') as fh:
+        with open(self._path, openmode) as fh:
             if remainder > 0 and self._iotactic._seek == 'reverse':
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
                 fh.seek(rindex)
-                fh.write(data[:remainder])
+                if operation == 'write':
+                    fh.write(data[:remainder])
+                fh.read(len(data[:remainder]))
             for idx in indexsupplier:
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(idx)
-                fh.write(data)
+                if operation == 'write':
+                    fh.write(data[:remainder])
+                fh.read(len(data[:remainder]))
             if remainder > 0 and (self._iotactic.seek_type == 'sequential' or self._iotactic.seek_type == 'random'):
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(rindex)
-                fh.write(data[:remainder])
+                if operation == 'write':
+                    fh.write(data[:remainder])
+                fh.read(len(data[:remainder]))
 
-        pass
-
-    def read(self):
-        """
-        Read data
-        :return: None
-        """
-        pass
 

@@ -1,7 +1,7 @@
 """
 This file defined the block io manipulations
 """
-from nfv_tree.nfvtree import NfvFile, NfvIoTactic
+from nfv_tree.nfvtree import NfvFile, NfvIoTactic, encipher_data
 from os.path import getsize
 
 
@@ -43,7 +43,7 @@ class NfvBlock(NfvFile):
 
         self._iotactic = io_tactic
 
-    def do_io(self, start_offset=0, stop_offset=4096):
+    def write(self, start_offset=0, stop_offset=4096):
         """
         Issue IO on the block device
         :return:
@@ -70,17 +70,22 @@ class NfvBlock(NfvFile):
             for idx in indexsupplier:
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
-                    self._io_check_db[self.encipher_data(data, self._io_check_db)] = True
+                    self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(idx)
                 fh.write(data)
             if remainder > 0 and (self._iotactic.seek_type == 'sequential' or self._iotactic.seek_type == 'random'):
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
-                    NfvFile._io_check_db[self.encipher_data(data, self._io_check_db)] = True
+                    self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(rindex)
                 fh.write(data[:remainder])
 
         pass
 
-
+    def read(self):
+        """
+        Read data
+        :return: None
+        """
+        pass
 

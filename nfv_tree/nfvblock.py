@@ -13,8 +13,8 @@ class NfvBlock(NfvFile):
     __slots__ = (
         '_path',
         '_size',
-        '_name',
-        '_iotactic',
+        '_name',     # optional
+        '_iotactic', #
     )
 
     def __init__(self, path=None, name='RestineLun', io_tactic=NfvIoTactic()):
@@ -45,8 +45,11 @@ class NfvBlock(NfvFile):
 
     def io(self, operation='write', start_offset=0, stop_offset=4096):
         """
-        Issue IO on the block device
-        :return:
+        Issue IO on the block device, this func serves as the major role of block I/O
+        :param operation    : operation type, either 'read' or 'write'
+        :param start_offset : offset of the I/O to be started
+        :param stop_offset  : offset of the I/O to be stopped
+        :return: *None*
         """
         start = start_offset
         stop = stop_offset
@@ -71,11 +74,12 @@ class NfvBlock(NfvFile):
             if remainder > 0 and self._iotactic._seek == 'reverse':
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
-                    NfvFile._io_check_db[encipher_data(data, NfvFile._io_check_db)] = True
+                    self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(rindex)
                 if operation == 'write':
                     fh.write(data[:remainder])
-                fh.read(len(data[:remainder]))
+                else:
+                    fh.read(len(data[:remainder]))
             for idx in indexsupplier:
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
@@ -83,7 +87,8 @@ class NfvBlock(NfvFile):
                 fh.seek(idx)
                 if operation == 'write':
                     fh.write(data[:remainder])
-                fh.read(len(data[:remainder]))
+                else:
+                    fh.read(len(data[:remainder]))
             if remainder > 0 and (self._iotactic.seek_type == 'sequential' or self._iotactic.seek_type == 'random'):
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
@@ -91,6 +96,7 @@ class NfvBlock(NfvFile):
                 fh.seek(rindex)
                 if operation == 'write':
                     fh.write(data[:remainder])
-                fh.read(len(data[:remainder]))
+                else:
+                    fh.read(len(data[:remainder]))
 
 

@@ -1,8 +1,9 @@
 """
 This file defined the block io manipulations
 """
-from nfv_tree.nfvtree import NfvFile, NfvIoTactic, encipher_data
+from nfv_tree.nfvtree import NfvFile, NfvIoTactic, encipher_data, convert_size
 from os.path import getsize
+from os import statvfs
 
 
 class NfvBlock(NfvFile):
@@ -28,7 +29,7 @@ class NfvBlock(NfvFile):
             raise RuntimeError("ERROR: Parameter 'path' is required!")
 
         self._path = path
-        self._size = getsize(self._path)
+        self._size = statvfs(self._path).f_bsize * statvfs(self._path).f_blocks
         self._name = name
         self._iotactic = io_tactic
 
@@ -43,20 +44,23 @@ class NfvBlock(NfvFile):
 
         self._iotactic = io_tactic
 
-    def io(self, operation='write', start_offset=0, stop_offset=4096):
+    def io(self, operation='write', start_offset=0, stop_offset=0):
         """
+        Generator Function
         Issue IO on the block device, this func serves as the major role of block I/O
         :param operation    : operation type, either 'read' or 'write'
         :param start_offset : offset of the I/O to be started
         :param stop_offset  : offset of the I/O to be stopped
-        :return: *None*
+        :return: generator object
         """
-        start = start_offset
-        stop = stop_offset
+        start = convert_size(start_offset)
+        stop = convert_size(stop_offset)
         openmode = 'rb'
-        if stop - start > self._size:
+        if stop == 0 and start == 0:
             stop = self._size
-        if start > self._size:
+        elif stop - start > self._size:
+            stop = self._size
+        elif start > self._size:
             raise RuntimeError("ERROR: Start offset should no larger than volume size!")
         io_range = stop - start
         if operation == 'write':
@@ -78,17 +82,19 @@ class NfvBlock(NfvFile):
                 fh.seek(rindex)
                 if operation == 'write':
                     fh.write(data[:remainder])
+                    yield len(data[:remainder])
                 else:
-                    fh.read(len(data[:remainder]))
+                    yield fh.read(len(data[:remainder]))
             for idx in indexsupplier:
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
                 fh.seek(idx)
                 if operation == 'write':
-                    fh.write(data[:remainder])
+                    fh.write(data)
+                    yield len(data)
                 else:
-                    fh.read(len(data[:remainder]))
+                    yield fh.read(len(data))
             if remainder > 0 and (self._iotactic.seek_type == 'sequential' or self._iotactic.seek_type == 'random'):
                 data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
@@ -96,7 +102,8 @@ class NfvBlock(NfvFile):
                 fh.seek(rindex)
                 if operation == 'write':
                     fh.write(data[:remainder])
+                    yield len(data)
                 else:
-                    fh.read(len(data[:remainder]))
+                    yield fh.read(len(data[:remainder]))
 
 

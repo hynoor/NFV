@@ -477,7 +477,7 @@ class NfvFile:
             openmode = 'rb+'
         numwrite = self._size // self._iotactic.get_property('io_size')
         remainder = self._size % self._iotactic.get_property('io_size')
-        indexsupplier = self._iotactic.seek_to(self._size)
+        indexsupplier = self._iotactic.seek_to(file_size=self._size)
         if remainder > 0:
             rindex = next(indexsupplier)
         with open(self._path, openmode) as fh:
@@ -1022,12 +1022,9 @@ class NfvIoTactic:
         """
         if file_size is None:
             file_size = stop_offset - start_offset
-        if stop_offset is None:
-            raise RuntimeError("ERROR: IO range information is missing")
 
         numwrite = file_size // self._iosize
         remainder = file_size % self._iosize
-        modfilesize = numwrite * self._iosize
         if remainder > 0:
             yield (file_size - remainder)
         if self._seek == 'sequencial':

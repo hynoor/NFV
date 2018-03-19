@@ -41,7 +41,7 @@ def create_tree():
     print("Io tactic deployed")
 
     # start to deploy 10 files with each has 2k file size
-    demotree.create_file(number=10, size='2k')
+    demotree.create_file(number=10, size='1m')
     print("File deployed")
 
     # wipe the entire file tree
@@ -65,7 +65,7 @@ def tailor_tree():
     demotree.set_tactic(iot)
 
     # start to deploy 10 files with each has 2k file size
-    demotree.create_file(number=10, size='2k')
+    # demotree.create_file(number=10, size='2k')
 
     # tailor the number of files to 5 
     demotree.tailor(file_number=5)

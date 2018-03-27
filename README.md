@@ -5,7 +5,7 @@ Network Filesystem Validator (beta version)
 ========================
 
 
-NFV is a module designed to simulate E2E user scenarios based on manipulating file tree, which can be manipulated along with NFS, SMB and even local file systems.
+NFV is a Python libarary designed to simulate E2E user scenarios based on manipulating file tree, which can be manipulated along with NFS, SMB and even local file systems.
 
 With _nfv_tree_, manipulations regarding network filesystem could be more flexible and programmatic.
 

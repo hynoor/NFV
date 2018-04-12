@@ -52,6 +52,9 @@ There are 6 primary classes defined in **nfv_tree** module
 > _**NfvIoTactic**_
 > Tactic of the I/O to be adopted, including strategies of data pattern, seek type, io size etc.
 >
+> _**NfvBlock**_
+> NfvBlock is inherited from NfvFile while it arms on do I/O on block device.
+>
 > _**NfvLockManager**_
 > A class designed to manager byte range locks, by which way, user could easily manage large number of locks with small snippet of code
 > 

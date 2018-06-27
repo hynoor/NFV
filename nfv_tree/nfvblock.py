@@ -1,9 +1,14 @@
 """
 This file defined the block io manipulations
 """
+import os
+import mmap
 from nfv_tree.nfvtree import NfvFile, NfvIoTactic, encipher_data, convert_size
 from os.path import getsize
 from os import statvfs
+
+import pdb
+
 
 
 class NfvBlock(NfvFile):
@@ -44,18 +49,19 @@ class NfvBlock(NfvFile):
 
         self._iotactic = io_tactic
 
-    def io(self, operation='write', start_offset=0, stop_offset=0):
+    def io(self, operation='write', direct=False, start_offset=0, stop_offset=0):
         """
         Generator Function
         Issue IO on the block device, this func serves as the major role of block I/O
         :param operation    : operation type, either 'read' or 'write'
+        :param direct       : Indicate if use direct I/O
         :param start_offset : offset of the I/O to be started
         :param stop_offset  : offset of the I/O to be stopped
         :return: generator object
         """
         start = convert_size(start_offset)
         stop = convert_size(stop_offset)
-        openmode = 'rb'
+        openmode = os.O_RDONLY
         if stop == 0 and start == 0:
             stop = self._size
         elif stop - start > self._size:
@@ -64,46 +70,52 @@ class NfvBlock(NfvFile):
             raise RuntimeError("ERROR: Start offset should no larger than volume size!")
         io_range = stop - start
         if operation == 'write':
-            openmode = 'rb+'
+            openmode = os.O_RDWR
         elif operation == 'read':
             pass
         else:
             raise ValueError("ERROR: Invalid operation!")
+        if direct:
+            openmode |= os.O_DIRECT
+            # anyone wants direct is required to use 512 bytes aligned boundary
+            data = mmap.mmap(-1, self._iotactic._iosize)
+            data.write(self._iotactic.get_data_pattern())
+        else:
+            self._iotactic.get_data_pattern()
         remainder = io_range % self._iotactic.get_property('io_size')
         indexsupplier = self._iotactic.seek_to(start_offset=start, stop_offset=stop)
         if remainder > 0:
             rindex = next(indexsupplier)
-
-        with open(self._path, openmode) as fh:
+        try:
+            fd = os.open(self._path, openmode)
             if remainder > 0 and self._iotactic._seek == 'reverse':
-                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
-                fh.seek(rindex)
+                os.lseek(fd, rindex, os.SEEK_CUR)
                 if operation == 'write':
-                    fh.write(data[:remainder])
+                    os.write(fd, data[:remainder])
                     yield len(data[:remainder])
                 else:
-                    yield fh.read(len(data[:remainder]))
+                    yield len(os.read(fd, len(data[:remainder])))
             for idx in indexsupplier:
-                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
-                fh.seek(idx)
+                os.lseek(fd, idx, os.SEEK_CUR)
                 if operation == 'write':
-                    fh.write(data)
+                    os.write(fd, data)
                     yield len(data)
                 else:
-                    yield fh.read(len(data))
+                    yield len(os.read(fd, len(data)))
             if remainder > 0 and (self._iotactic.seek_type == 'sequential' or self._iotactic.seek_type == 'random'):
-                data = self._iotactic.get_data_pattern()
                 if self._iotactic._datacheck:
                     self._io_check_db[encipher_data(data, self._io_check_db)] = True
-                fh.seek(rindex)
+                os.lseek(fd, rindex, os.SEEK_CUR)
                 if operation == 'write':
-                    fh.write(data[:remainder])
+                    os.write(fd, data[:remainder])
                     yield len(data)
                 else:
-                    yield fh.read(len(data[:remainder]))
+                    yield len(os.read(fd, len(data[:remainder])))
+        finally:
+            os.close(fd)
 
 

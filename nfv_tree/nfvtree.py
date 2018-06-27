@@ -878,7 +878,7 @@ class NfvIoTactic:
         generate a data with fixed data pattern 
         :return : data pattern in bytes
         """
-        iosize = int(io_size)
+        iosize = int(convert_size(io_size))
 
         tmpbytes = bytes('content of data pattern is not important', encoding='utf-8')
         if pattern is not None:

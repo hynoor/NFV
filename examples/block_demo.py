@@ -3,23 +3,22 @@ demo file for block io
 """
 from nfv_tree.nfvtree import NfvIoTactic as Tactic
 from nfv_tree.nfvblock import NfvBlock as Block
-import sys
 
 
 def block_trial():
     """
     A trial to probe cyclone data path
     """
-    my_block = Block(path='/dev/sdb')
+    my_block = Block(path='/dev/mapper/mpathca')
 
-    iot = Tactic(io_size='4k', data_pattern='fixed')
+    iot = Tactic(io_size='4k', data_pattern='random')
 
     # build data pattern
-    dp = Tactic.bit_pattern(bits='11111111', io_size='4k')
-    dp2 = Tactic.bit_pattern(bits='00000000', io_size='4k')
-    dp_final = dp + dp2
+    #dp = Tactic.bit_pattern(bits='11111111', io_size='4k')
+    #dp2 = Tactic.fixed_pattern(pattern="abcdefg", io_size='4k')
 
-    iot.set_data_pattern(dp_final)
+    #iot.set_data_pattern(dp2)
+    iot = Tactic(io_size='4k', data_pattern='random')
 
     my_block.set_iotactic(iot)
 
@@ -29,8 +28,8 @@ def block_trial():
     # create a I/O generator
     io_writer = my_block.io(
         operation='write', 
-        start_offset=0, 
-        stop_offset='400k'
+        start_offset='900k', 
+        stop_offset='133300k'
     )
 
     for s in io_writer:

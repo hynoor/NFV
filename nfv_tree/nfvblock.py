@@ -79,9 +79,9 @@ class NfvBlock(NfvFile):
             openmode |= os.O_DIRECT
             # anyone wants direct is required to use 512 bytes aligned boundary
             data = mmap.mmap(-1, self._iotactic._iosize)
-            data.write(self._iotactic.get_data_pattern())
+            data.write(self._iotactic._data)
         else:
-            self._iotactic.get_data_pattern()
+            data = self._iotactic._data()
         remainder = io_range % self._iotactic.get_property('io_size')
         indexsupplier = self._iotactic.seek_to(start_offset=start, stop_offset=stop)
         if remainder > 0:
@@ -115,7 +115,11 @@ class NfvBlock(NfvFile):
                     yield len(data)
                 else:
                     yield len(os.read(fd, len(data[:remainder])))
+        except OSError as e:
+            print("Parameters Dump: fd:%d, idx:%d" % (fd, idx))
+            raise OSError(str(e))
         finally:
-            os.close(fd)
+            if fd:
+                os.close(fd)
 
 
